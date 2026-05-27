@@ -236,21 +236,39 @@ router.post('/agregarpublicacion', async (req, res) => {
 
 
 // ──────────────────────────────────────────────
-// OBTENER PUBLICACIONES
+// OBTENER PUBLICACIONES (paginado)
 // ──────────────────────────────────────────────
 router.get('/obtenerpublicaciones', async (req, res) => {
 
     try {
 
-        const publicaciones = await ModeloPublicacion
-            .find({})
-            .sort({ fecha: -1 })
+        const pagina = Math.max(1, Number(req.query.pagina) || 1)
+        const limite = Math.min(50, Math.max(1, Number(req.query.limite) || 3))
+        const saltar = (pagina - 1) * limite
 
-        res.send(publicaciones)
+        const [publicaciones, total] = await Promise.all([
+            ModeloPublicacion
+                .find({})
+                .sort({ fecha: -1 })
+                .skip(saltar)
+                .limit(limite),
+            ModeloPublicacion.countDocuments({})
+        ])
+
+        res.send({
+            publicaciones,
+            pagina,
+            limite,
+            total,
+            hayMas: saltar + publicaciones.length < total
+        })
 
     } catch (err) {
 
-        res.status(500).send(err)
+        console.error('Error al obtener publicaciones:', err)
+        res.status(500).send({
+            error: 'No se pudieron obtener las publicaciones'
+        })
 
     }
 
