@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
 import {
   Search,
   Home,
@@ -12,15 +13,14 @@ import {
 import logoLinkedin from "../assets/img/linkedin.png"
 
 const NAV_ITEMS = [
-  { icon: Home, label: 'Inicio' },
-  { icon: Users, label: 'Mi red' },
-  { icon: Briefcase, label: 'Empleos' },
-  { icon: MessageSquare, label: 'Mensajería' },
-  { icon: Bell, label: 'Notificaciones', badge: 1 },
+  { to: '/',               icon: Home,          label: 'Inicio' },
+  { to: '/mi-red',         icon: Users,         label: 'Mi red' },
+  { to: '/empleos',        icon: Briefcase,     label: 'Empleos' },
+  { to: '/mensajeria',     icon: MessageSquare, label: 'Mensajería' },
+  { to: '/notificaciones', icon: Bell,          label: 'Notificaciones', badge: 1 },
 ]
 
 export default function Header() {
-  const [activeNav, setActiveNav] = useState('Inicio')
   const [searchValue, setSearchValue] = useState('')
 
   return (
@@ -28,9 +28,9 @@ export default function Header() {
       <div className="max-w-[1128px] mx-auto px-4 flex items-center gap-2 h-14">
 
         {/* ── Logo LinkedIn ── */}
-        <a href="/" aria-label="LinkedIn" className="shrink-0 mr-1">
+        <NavLink to="/" aria-label="LinkedIn" className="shrink-0 mr-1">
           <img src={logoLinkedin} alt="Linkedin Devs" style={{ width: '32px', height: '32px' }} />
-        </a>
+        </NavLink>
 
         {/* ── Buscador ── */}
         <div className="relative hidden sm:flex items-center bg-white border border-gray-300 rounded-full w-[280px] shrink-0 focus-within:border-gray-500 transition-colors">
@@ -44,29 +44,35 @@ export default function Header() {
           />
         </div>
 
-        {/* ── Separador + Nav central ── */}
+        {/* ── Nav central ── */}
         <nav className="flex items-center ml-auto gap-1">
-          {NAV_ITEMS.map(({ icon: Icon, label, badge }) => (
-            <button
+          {NAV_ITEMS.map(({ to, icon: Icon, label, badge }) => (
+            <NavLink
               key={label}
-              onClick={() => setActiveNav(label)}
-              className={`relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-4 h-14 min-w-[52px] text-xs font-medium transition-colors hover:cursor-pointer
-                ${
-                  activeNav === label
-                    ? 'text-black border-b-2 border-black'
-                    : 'text-gray-500 hover:text-black'
-                }`}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-4 h-14 min-w-[52px] text-xs font-medium transition-colors hover:cursor-pointer
+                ${isActive
+                  ? 'text-black border-b-2 border-black'
+                  : 'text-gray-500 hover:text-black'
+                }`
+              }
             >
-              <span className="relative">
-                <Icon className="w-6 h-6" strokeWidth={activeNav === label ? 2.5 : 1.8} />
-                {badge ? (
-                  <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
-                    {badge}
+              {({ isActive }) => (
+                <>
+                  <span className="relative">
+                    <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 1.8} />
+                    {badge ? (
+                      <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                        {badge}
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
-              </span>
-              <span className="hidden md:block">{label}</span>
-            </button>
+                  <span className="hidden md:block">{label}</span>
+                </>
+              )}
+            </NavLink>
           ))}
 
           {/* Divisor vertical */}

@@ -1,13 +1,14 @@
 # MERN Stack LinkedIn
 
 Un clon estilo LinkedIn construido con el **stack MERN** (MongoDB, Express, React y Node.js) para aprender y mostrar de punta a punta cómo se conecta un frontend moderno con una API REST real.
-Permite crear publicaciones, adjuntar archivos, recomendar posts y ver el feed en tiempo real.
+Permite crear publicaciones con texto, imágenes, videos, PDFs y PowerPoints, mejorar el texto con **IA (Google Gemini)**, ver previews automáticos de YouTube, autoplay de videos al hacer scroll y un feed paginado con scroll infinito.
 Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 5 y MongoDB Atlas en un mismo proyecto.
 
 ---
 
 ## Tabla de contenido
 
+- [Funcionalidades](#funcionalidades)
 - [Stack](#stack)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Requisitos previos](#requisitos-previos)
@@ -18,21 +19,42 @@ Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 
 
 ---
 
+## Funcionalidades
+
+- **Feed paginado con scroll infinito**: las publicaciones se cargan de 3 en 3 a medida que el usuario hace scroll.
+- **Crear publicaciones** con texto, emojis (`emoji-mart`), múltiples imágenes (hasta 6), videos, PDFs y PowerPoints.
+- **Mejorar texto con IA** usando Google Gemini desde un botón en el modal de publicación.
+- **Vista previa de YouTube** automática al pegar un enlace en el texto (`react-lite-youtube-embed`).
+- **Mosaico de imágenes** estilo LinkedIn (1, 2, 3, 4+ imágenes con overlay `+N`).
+- **Slider de páginas para PDFs** usando las transformaciones `pg_N` de Cloudinary.
+- **Autoplay de videos** al entrar al viewport (con `IntersectionObserver`).
+- **Recomendar publicaciones** (similar a "Me gusta", una por sesión).
+- **Skeletons sincronizados** para una carga visual idéntica al layout final.
+- **Navegación con React Router** y rutas placeholder para Mi red, Empleos, Mensajería y Notificaciones.
+- **Animaciones suaves** de apertura y cierre del modal.
+
+---
+
 ## Stack
 
 **Frontend**
-- React 19
+- React 19 + React Compiler
 - Vite
 - Tailwind CSS 4
+- React Router DOM
 - lucide-react (íconos)
+- dayjs (fechas relativas en español)
+- emoji-mart (selector de emojis)
+- react-lite-youtube-embed (previews ligeros de YouTube)
+- react-infinite-scroll-component (scroll infinito)
+- nextjs-toast-notify (toasts)
 
 **Backend**
-- Node.js
-- Express 5
-- Mongoose
-- MongoDB Atlas
+- Node.js + Express 5
+- Mongoose + MongoDB Atlas
 - Cloudinary (almacenamiento de archivos)
-- multer + uuid
+- multer + uuid (subida de archivos en memoria)
+- @google/genai (Google Gemini para mejorar publicaciones)
 - dotenv + cors
 
 ---
@@ -42,7 +64,7 @@ Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 
 ```
 mern_stack_linkedin/
 ├── backend-expres-nodejs/        # API REST con Express + MongoDB
-│   ├── api/api.js                # Rutas y modelo de publicaciones
+│   ├── api/api.js                # Rutas, modelo de publicaciones e integración con IA
 │   ├── conn/configBD.js          # Conexión a MongoDB Atlas
 │   ├── conn/configCloudinary.js  # Conexión a Cloudinary
 │   ├── app.js                    # Punto de entrada del servidor
@@ -50,9 +72,13 @@ mern_stack_linkedin/
 │
 └── frontend-react-js/            # SPA con React + Vite
     ├── src/
-    │   ├── components/           # Header, PostCard, CreatePostModal, HomeSkeleton
+    │   ├── components/           # Header, PostCard, CreatePostModal, ImageGrid, MediaSlider, etc.
+    │   ├── hooks/                # usePosts, useInView
     │   ├── pages/Home.jsx        # Feed principal
-    │   └── App.jsx
+    │   ├── pages/placeholders/   # Mi red, Empleos, Mensajería, Notificaciones
+    │   ├── utils/youtube.js      # Helper para detectar URLs de YouTube
+    │   ├── App.jsx               # Definición de rutas
+    │   └── main.jsx              # Punto de entrada (BrowserRouter)
     └── .env.example              # Plantilla de variables de entorno
 ```
 
@@ -62,7 +88,8 @@ mern_stack_linkedin/
 
 - [Node.js](https://nodejs.org/) 20+ y npm
 - Una cuenta gratuita de [MongoDB Atlas](https://www.mongodb.com/atlas) con un cluster creado
-- Una cuenta gratuita de [Cloudinary](https://cloudinary.com/users/register/free) (para guardar las imágenes y archivos subidos)
+- Una cuenta gratuita de [Cloudinary](https://cloudinary.com/users/register/free) (para guardar imágenes y archivos subidos)
+- Una API key gratuita de [Google AI Studio](https://aistudio.google.com/apikey) (para la funcionalidad "Mejorar con IA")
 
 ---
 
@@ -81,22 +108,30 @@ npm install
 cp .env-example .env
 ```
 
-3. Completa las variables con tus credenciales de **MongoDB Atlas** y **Cloudinary**:
+3. Completa las variables con tus credenciales:
 
 ```env
+# MongoDB Atlas
 DB_USER=tu_usuario
 DB_PASS=tu_password
 DB_HOST=tu_cluster.mongodb.net
 DB_APP_NAME=Cluster01
 
-# Configuración de Cloudinary
+# Cloudinary
 CLOUDINARY_CLOUD_NAME=tu_cloud_name
 CLOUDINARY_API_KEY=tu_api_key
 CLOUDINARY_API_SECRET=tu_api_secret
 CLOUDINARY_FOLDER=files_mern_stack
+MAX_FILE_SIZE_MB=100
+MAX_IMAGES=6
+ALLOWED_MIME_TYPES=image/*,video/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation
+
+# Google Gemini (mejorar publicación con IA)
+GEMINI_API_KEY=tu_api_key_de_gemini
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-> Las credenciales de Cloudinary están en **Dashboard → API Keys** de tu cuenta. La carpeta `CLOUDINARY_FOLDER` se crea automáticamente cuando se sube el primer archivo.
+> Las credenciales de Cloudinary están en **Dashboard → API Keys**. La carpeta `CLOUDINARY_FOLDER` se crea automáticamente al subir el primer archivo. La key de Gemini se obtiene en [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
 4. Levanta el servidor en modo desarrollo (recarga automática con `node --watch`):
 
@@ -114,8 +149,10 @@ Servidor disponible en: **http://localhost:5000**
 
 ```bash
 cd frontend-react-js
-npm install
+npm install --legacy-peer-deps
 ```
+
+> Se usa `--legacy-peer-deps` porque algunas librerías (`@emoji-mart/react`, `react-lite-youtube-embed`) aún no declaran React 19 como peer dependency, aunque funcionan perfecto en runtime.
 
 2. Crea tu archivo `.env` a partir del ejemplo:
 
@@ -127,8 +164,10 @@ cp .env.example .env
 
 ```env
 VITE_API_URL=http://localhost:5000/api
-VITE_ACCEPTED_FILE_TYPES=image/*,video/*,application/pdf
+VITE_ACCEPTED_FILE_TYPES=image/*,video/*,application/pdf,.ppt,.pptx
 VITE_DEFAULT_USER_ID=demo-user
+VITE_MAX_IMAGES=6
+VITE_POSTS_POR_PAGINA=3
 ```
 
 4. Inicia el servidor de desarrollo:
@@ -139,7 +178,7 @@ npm run dev
 
 App disponible en: **http://localhost:5173**
 
-> Recuerda mantener el backend corriendo en paralelo para que el frontend pueda consumir la API.
+> Recuerda mantener el backend corriendo en paralelo para que el frontend pueda consumir la API. Si cambias el `.env`, reinicia el dev server para que las variables se recarguen.
 
 ---
 
@@ -147,12 +186,13 @@ App disponible en: **http://localhost:5173**
 
 | Método | Ruta                            | Descripción                               |
 |--------|---------------------------------|-------------------------------------------|
-| POST   | `/api/subirarchivos`            | Sube uno o varios archivos a **Cloudinary** (`multipart/form-data`, campo `archivos`) y devuelve sus URLs públicas |
-| POST   | `/api/agregarpublicacion`       | Crea una nueva publicación                |
-| GET    | `/api/obtenerpublicaciones`     | Obtiene todas las publicaciones (recientes primero) |
+| POST   | `/api/subirarchivos`            | Sube uno o varios archivos a **Cloudinary** (`multipart/form-data`, campo `archivos`) y devuelve sus URLs públicas + nº de páginas (PDF) |
+| POST   | `/api/agregarpublicacion`       | Crea una nueva publicación con texto y archivos asociados |
+| GET    | `/api/obtenerpublicaciones`     | Obtiene publicaciones paginadas (`?pagina=N&limite=M`, recientes primero) |
 | POST   | `/api/recomendarpublicacion`    | Suma una recomendación a una publicación  |
+| POST   | `/api/mejorarpost`              | Mejora el texto de una publicación usando **Google Gemini** |
 
-> Los archivos se almacenan en Cloudinary (carpeta `files_mern_stack`) con un nombre **UUID v4**. En MongoDB solo se guarda la URL pública del recurso, no el binario.
+> Los archivos se almacenan en Cloudinary (carpeta `files_mern_stack`) con un nombre **UUID v4** + extensión original. En MongoDB solo se guarda `{ url, tipo, nombre, paginas }`, nunca el binario.
 
 ---
 

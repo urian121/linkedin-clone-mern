@@ -18,7 +18,6 @@ export default function YoutubeEmbed({ id, title = 'Video de YouTube', bordered 
         id={id}
         title={title}
         poster="hqdefault"
-        noCookie
       />
     </div>
   )
