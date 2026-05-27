@@ -11,12 +11,32 @@ const cloudinary = require('../conn/configCloudinary')
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB) || 100
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
+// Tipos MIME permitidos. Acepta wildcards tipo "image/*" o MIME exactos.
+const ALLOWED_MIME_TYPES = (process.env.ALLOWED_MIME_TYPES || 'image/*,video/*,application/pdf')
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+
+const isMimeAllowed = (mimetype = '') =>
+    ALLOWED_MIME_TYPES.some((rule) => {
+        if (rule.endsWith('/*')) {
+            return mimetype.startsWith(rule.slice(0, -1))
+        }
+        return mimetype === rule
+    })
+
 // ──────────────────────────────────────────────
 // MULTER (archivos en memoria, no en disco)
 // ──────────────────────────────────────────────
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_FILE_SIZE_BYTES }
+    limits: { fileSize: MAX_FILE_SIZE_BYTES },
+    fileFilter: (req, file, cb) => {
+        if (isMimeAllowed(file.mimetype)) return cb(null, true)
+        const err = new Error(`Tipo de archivo no permitido: ${file.mimetype}`)
+        err.code = 'INVALID_FILE_TYPE'
+        cb(err)
+    }
 })
 
 const manejarMulter = (req, res, next) => {
@@ -32,6 +52,12 @@ const manejarMulter = (req, res, next) => {
         if (err.code === 'LIMIT_FILE_COUNT') {
             return res.status(400).send({
                 error: 'Máximo 10 archivos por publicación'
+            })
+        }
+
+        if (err.code === 'INVALID_FILE_TYPE') {
+            return res.status(415).send({
+                error: err.message
             })
         }
 
@@ -52,7 +78,8 @@ const PublicacionSchema = new mongoose.Schema({
     archivos: [
         {
             url: String,
-            tipo: String
+            tipo: String,
+            paginas: { type: Number, default: 0 }
         }
     ],
 
@@ -120,7 +147,8 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
 
         const archivos = subidas.map((r, i) => ({
             url: r.secure_url,
-            tipo: req.files[i].mimetype
+            tipo: req.files[i].mimetype,
+            paginas: r.pages || 0
         }))
 
         res.send({
