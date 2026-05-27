@@ -5,8 +5,17 @@ import useAuth from './useAuth'
 const API_URL = import.meta.env.VITE_API_URL
 const DEFAULT_USER_ID = import.meta.env.VITE_DEFAULT_USER_ID
 const MAX_IMAGES = Number(import.meta.env.VITE_MAX_IMAGES) || 6
+const MAX_IMAGEN_MB = Number(import.meta.env.VITE_MAX_IMAGEN_MB) || 20
+const MAX_VIDEO_MB = Number(import.meta.env.VITE_MAX_VIDEO_MB) || 100
 
 const toastBase = { position: 'bottom-right', transition: 'swingInverted' }
+
+const mbABytes = (mb) => mb * 1024 * 1024
+
+const limiteBytesArchivo = (tipo = '') =>
+  tipo.startsWith('video/') ? mbABytes(MAX_VIDEO_MB) : mbABytes(MAX_IMAGEN_MB)
+
+const MSG_PESO_LOCAL = `Archivo muy pesado (máx ${MAX_IMAGEN_MB} MB para imágenes/docs, ${MAX_VIDEO_MB} MB para videos).`
 
 /* Encapsula todo el estado y la lógica del formulario de crear publicación:
    texto, archivos, mejora con IA, subida a Cloudinary y publicación. */
@@ -31,7 +40,14 @@ export default function usePostForm({ onPublished } = {}) {
     let aceptadasImg = 0
     let rechazadas = 0
 
+    let rechazadasPeso = 0
+
     const mapped = seleccionados.flatMap((file) => {
+      if (file.size > limiteBytesArchivo(file.type)) {
+        rechazadasPeso++
+        return []
+      }
+
       if (file.type.startsWith('image/')) {
         if (imagenesActuales + aceptadasImg >= MAX_IMAGES) {
           rechazadas++
@@ -45,6 +61,10 @@ export default function usePostForm({ onPublished } = {}) {
         tipo: file.type
       }]
     })
+
+    if (rechazadasPeso > 0) {
+      showToast.error(MSG_PESO_LOCAL, { ...toastBase, sound: true })
+    }
 
     if (rechazadas > 0) {
       showToast.warning(`Solo se permiten ${MAX_IMAGES} imágenes por publicación`, {
@@ -146,7 +166,10 @@ export default function usePostForm({ onPublished } = {}) {
 
         const upData = await upRes.json().catch(() => ({}))
         if (!upRes.ok) {
-          showToast.error('Error al subir archivos', { ...toastBase, sound: true })
+          const msg = upData.error || 'No se pudieron subir los archivos'
+          setError(msg)
+          showToast.error(msg, { ...toastBase, sound: true })
+          return false
         }
         archivosSubidos = upData.archivos || []
       }

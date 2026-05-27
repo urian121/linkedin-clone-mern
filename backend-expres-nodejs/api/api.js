@@ -7,9 +7,19 @@ const { v4: uuidv4 } = require('uuid')
 const { GoogleGenAI } = require("@google/genai");
 const cloudinary = require('../conn/configCloudinary')
 
-// Límite por archivo (MB). Un video "de 10 MB" suele pesar ~10.5 MiB y rebasaba el tope anterior.
-const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB) || 100
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+// Límites por tipo (MB). Videos permiten más peso que imágenes/documentos.
+const MAX_IMAGEN_MB = Number(process.env.MAX_IMAGEN_MB) || 20
+const MAX_VIDEO_MB = Number(process.env.MAX_VIDEO_MB) || 100
+
+const mbABytes = (mb) => mb * 1024 * 1024
+
+const limiteBytesParaArchivo = (mimetype = '') =>
+    mimetype.startsWith('video/')
+        ? mbABytes(MAX_VIDEO_MB)
+        : mbABytes(MAX_IMAGEN_MB)
+
+const MSG_PESO_LOCAL = `Archivo muy pesado (máx ${MAX_IMAGEN_MB} MB para imágenes/docs, ${MAX_VIDEO_MB} MB para videos).`
+const MSG_PESO_CLOUDINARY = 'Cloudinary rechazó el archivo por su peso. Intenta comprimirlo.'
 
 // Máximo de imágenes por publicación
 const MAX_IMAGES = Number(process.env.MAX_IMAGES) || 6
@@ -62,7 +72,8 @@ const resourceTypeParaArchivo = (mimetype = '') => {
 // ──────────────────────────────────────────────
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_FILE_SIZE_BYTES },
+    /* Multer usa el tope más alto; la validación fina por tipo va en /subirarchivos */
+    limits: { fileSize: mbABytes(MAX_VIDEO_MB) },
     fileFilter: (req, file, cb) => {
         if (isMimeAllowed(file.mimetype)) return cb(null, true)
         const err = new Error(`Tipo de archivo no permitido: ${file.mimetype}`)
@@ -76,9 +87,7 @@ const manejarMulter = (req, res, next) => {
         if (!err) return next()
 
         if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(413).send({
-                error: `El archivo supera el límite de ${MAX_FILE_SIZE_MB} MB`
-            })
+            return res.status(413).send({ error: MSG_PESO_LOCAL })
         }
 
         if (err.code === 'LIMIT_FILE_COUNT') {
@@ -173,6 +182,11 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
             })
         }
 
+        const archivoPesado = req.files.find((f) => f.size > limiteBytesParaArchivo(f.mimetype))
+        if (archivoPesado) {
+            return res.status(413).send({ error: MSG_PESO_LOCAL })
+        }
+
         const folder = process.env.CLOUDINARY_FOLDER || 'files_mern_stack'
 
         const subidas = await Promise.all(
@@ -206,11 +220,17 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
     } catch (err) {
         console.error('Error al subir archivos:', err)
 
-        const mensaje = err?.message?.includes('File size too large')
-            ? 'Cloudinary rechazó el archivo (revisa el límite de tu plan)'
+        /* Cloudinary devuelve "File size too large" cuando el archivo
+           supera el tope del plan (10 MB para imágenes en plan free). */
+        const esPesoCloudinary =
+            err?.message?.includes('File size too large')
+            || (err?.http_code === 400 && String(err?.message || '').toLowerCase().includes('size'))
+
+        const mensaje = esPesoCloudinary
+            ? MSG_PESO_CLOUDINARY
             : 'No se pudieron subir los archivos'
 
-        res.status(500).send({ error: mensaje })
+        res.status(esPesoCloudinary ? 413 : 500).send({ error: mensaje })
 
     }
 

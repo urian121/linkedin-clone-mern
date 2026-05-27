@@ -129,7 +129,8 @@ CLOUDINARY_CLOUD_NAME=tu_cloud_name
 CLOUDINARY_API_KEY=tu_api_key
 CLOUDINARY_API_SECRET=tu_api_secret
 CLOUDINARY_FOLDER=files_mern_stack
-MAX_FILE_SIZE_MB=100
+MAX_IMAGEN_MB=20
+MAX_VIDEO_MB=100
 MAX_IMAGES=6
 ALLOWED_MIME_TYPES=image/*,video/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation
 
@@ -174,6 +175,8 @@ VITE_API_URL=http://localhost:5000/api
 VITE_ACCEPTED_FILE_TYPES=image/*,video/*,application/pdf,.ppt,.pptx
 VITE_DEFAULT_USER_ID=demo-user
 VITE_MAX_IMAGES=6
+VITE_MAX_IMAGEN_MB=20
+VITE_MAX_VIDEO_MB=100
 VITE_IMAGENES_MOSAICO_MAX=4
 VITE_POSTS_POR_PAGINA=3
 
