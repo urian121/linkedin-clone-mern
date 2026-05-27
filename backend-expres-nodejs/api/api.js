@@ -2,6 +2,45 @@ const express = require('express')
 const router = express.Router()
 
 const mongoose = require('mongoose')
+const multer = require('multer')
+const { v4: uuidv4 } = require('uuid')
+
+const cloudinary = require('../conn/configCloudinary')
+
+// Límite por archivo (MB). Un video "de 10 MB" suele pesar ~10.5 MiB y rebasaba el tope anterior.
+const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB) || 100
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+// ──────────────────────────────────────────────
+// MULTER (archivos en memoria, no en disco)
+// ──────────────────────────────────────────────
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_FILE_SIZE_BYTES }
+})
+
+const manejarMulter = (req, res, next) => {
+    upload.array('archivos', 10)(req, res, (err) => {
+        if (!err) return next()
+
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).send({
+                error: `El archivo supera el límite de ${MAX_FILE_SIZE_MB} MB`
+            })
+        }
+
+        if (err.code === 'LIMIT_FILE_COUNT') {
+            return res.status(400).send({
+                error: 'Máximo 10 archivos por publicación'
+            })
+        }
+
+        return res.status(400).send({
+            error: err.message || 'Archivo no válido'
+        })
+    })
+}
+
 
 // ──────────────────────────────────────────────
 // ESQUEMA DE PUBLICACIONES
@@ -17,21 +56,90 @@ const PublicacionSchema = new mongoose.Schema({
         }
     ],
 
-    reacciones: {
-        recomendacion: { type: Number, default: 0 },
-        celebrar: { type: Number, default: 0 },
-        apoyar: { type: Number, default: 0 },
-        meEncanta: { type: Number, default: 0 },
-        interesante: { type: Number,default: 0 }
-    },
+    recomendaciones: { type: Number, default: 0 },
 
-    fecha: {type: Date, default: Date.now }
+    fecha: { type: Date, default: Date.now }
 
 })
 
 
 // MODELO
 const ModeloPublicacion = mongoose.model('publicaciones', PublicacionSchema)
+
+
+// ──────────────────────────────────────────────
+// HELPER: Subir un buffer a Cloudinary
+// ──────────────────────────────────────────────
+const subirBufferACloudinary = (buffer, options) => {
+
+    return new Promise((resolve, reject) => {
+
+        const stream = cloudinary.uploader.upload_stream(
+
+            options,
+
+            (error, result) => {
+                if (error) return reject(error)
+                resolve(result)
+            }
+
+        )
+
+        stream.end(buffer)
+
+    })
+
+}
+
+
+// ──────────────────────────────────────────────
+// SUBIR ARCHIVOS (a Cloudinary)
+// ──────────────────────────────────────────────
+router.post('/subirarchivos', manejarMulter, async (req, res) => {
+
+    try {
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).send({
+                error: 'No se enviaron archivos'
+            })
+        }
+
+        const folder = process.env.CLOUDINARY_FOLDER || 'files_mern_stack'
+
+        const subidas = await Promise.all(
+
+            req.files.map((file) => subirBufferACloudinary(file.buffer, {
+                folder,
+                public_id: uuidv4(),
+                resource_type: 'auto',
+                timeout: 120000
+            }))
+
+        )
+
+        const archivos = subidas.map((r, i) => ({
+            url: r.secure_url,
+            tipo: req.files[i].mimetype
+        }))
+
+        res.send({
+            mensaje: 'Archivos subidos correctamente',
+            archivos
+        })
+
+    } catch (err) {
+        console.error('Error al subir archivos:', err)
+
+        const mensaje = err?.message?.includes('File size too large')
+            ? 'Cloudinary rechazó el archivo (revisa el límite de tu plan)'
+            : 'No se pudieron subir los archivos'
+
+        res.status(500).send({ error: mensaje })
+
+    }
+
+})
 
 
 // ──────────────────────────────────────────────
@@ -86,38 +194,18 @@ router.get('/obtenerpublicaciones', async (req, res) => {
 
 
 // ──────────────────────────────────────────────
-// REACCIONAR PUBLICACIÓN
+// RECOMENDAR PUBLICACIÓN
 // ──────────────────────────────────────────────
-router.post('/reaccionarpublicacion', async (req, res) => {
+router.post('/recomendarpublicacion', async (req, res) => {
 
     try {
 
-        const reaccionesValidas = [
-            'recomendacion',
-            'celebrar',
-            'apoyar',
-            'meEncanta',
-            'interesante'
-        ]
-
-        const reaccion = req.body.reaccion
-
-        if (!reaccionesValidas.includes(reaccion)) {
-
-            return res.status(400).send({
-                error: 'Reacción inválida'
-            })
-
-        }
-
-        const incremento = {}
-        incremento[`reacciones.${reaccion}`] = 1
         const doc = await ModeloPublicacion.findByIdAndUpdate(
 
             req.body.idpublicacion,
 
             {
-                $inc: incremento
+                $inc: { recomendaciones: 1 }
             },
 
             {
@@ -126,9 +214,15 @@ router.post('/reaccionarpublicacion', async (req, res) => {
 
         )
 
+        if (!doc) {
+            return res.status(404).send({
+                error: 'Publicación no encontrada'
+            })
+        }
+
         res.send({
-            mensaje: 'Reacción agregada',
-            reacciones: doc.reacciones
+            mensaje: 'Recomendación agregada',
+            recomendaciones: doc.recomendaciones
         })
 
     } catch (err) {

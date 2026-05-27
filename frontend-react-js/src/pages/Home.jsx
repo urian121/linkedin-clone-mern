@@ -1,53 +1,93 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus } from 'lucide-react'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/es'
+
+import Header from '../components/Header'
 import PostCard from '../components/PostCard'
 import CreatePostModal from '../components/CreatePostModal'
+import HomeSkeleton from '../components/HomeSkeleton'
 
-/* ─── Posts de ejemplo (simulan datos de la API) ─────────── */
-const POSTS = [
-  {
-    id: 1,
-    name: 'Fazt',
-    avatarColor: '#C0392B',
-    subtitle: 'Creador de contenido • Programación y tecnología',
-    time: '1 h',
-    isPublic: true,
-    content:
-      '🎉 ¿El nuevo lenguaje de Vercel es puro hype o realmente sirve?\n\nAcabo de subir un video donde analizo Zerolang, el lenguaje de programación experimental de Vercel pensado para agentes de IA. ¿Vale la pena aprenderlo o es solo marketing?',
-    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80',
-    initialLikes: 5,
-  },
-  {
-    id: 2,
-    name: 'Midudev',
-    avatarColor: '#2980B9',
-    subtitle: 'Senior Frontend Engineer • Speaker • Open Source',
-    time: '3 h',
-    isPublic: true,
-    content:
-      '🚀 React 19 ya está aquí y trae cambios que van a redefinir cómo escribimos componentes. Los Server Components, el nuevo compilador y los hooks mejorados hacen que el código sea más limpio y performante que nunca. ¿Ya lo estás usando en producción?',
-    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80',
-    initialLikes: 142,
-  },
-  {
-    id: 3,
-    name: 'Fireship',
-    avatarColor: '#E67E22',
-    subtitle: 'Full-stack web developer & content creator',
-    time: '5 h',
-    isPublic: true,
-    content:
-      '⚡ TypeScript 5.5 acaba de salir y tiene una feature que esperaba desde hace años: inferencia de tipos en closures de manera automática. En 100 segundos te explico todo lo que necesitas saber.',
-    image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&q=80',
-    initialLikes: 87,
-  },
+dayjs.extend(relativeTime)
+dayjs.locale('es')
+
+const API_URL = import.meta.env.VITE_API_URL
+const MIN_SKELETON_MS = 2000
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/* ─── Helpers de presentación ─────────────────────────────── */
+
+/* Paleta para colorear el avatar a partir del idusuario */
+const AVATAR_COLORS = [
+  '#C0392B', '#2980B9', '#27AE60', '#8E44AD',
+  '#E67E22', '#16A085', '#D35400', '#34495E'
 ]
 
+const colorFromString = (str = '') => {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+/* ─── Página ──────────────────────────────────────────────── */
 export default function Home() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [posts, setPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  /* Carga las publicaciones; el setState ocurre solo después del await */
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const [res] = await Promise.all([
+          fetch(`${API_URL}/obtenerpublicaciones`),
+          sleep(MIN_SKELETON_MS)
+        ])
+
+        if (!res.ok) throw new Error(`Error ${res.status} al cargar publicaciones`)
+
+        const data = await res.json()
+        if (cancelled) return
+
+        setPosts(Array.isArray(data) ? data : [])
+        setError(null)
+      } catch (err) {
+        if (cancelled) return
+        setError(err.message || 'No se pudieron cargar las publicaciones.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [reloadKey])
+
+  /* Reintento desde un event handler (permitido hacer setState aquí) */
+  const handleRetry = () => {
+    setLoading(true)
+    setError(null)
+    setReloadKey((k) => k + 1)
+  }
+
+  /* Cuando el modal publica con éxito, agregamos el post al feed */
+  const handlePosted = (nueva) => {
+    if (nueva) setPosts((prev) => [nueva, ...prev])
+  }
+
+  if (loading) return <HomeSkeleton count={3} />
 
   return (
-    <main className="min-h-screen bg-[#F3F2EF] py-6">
+    <>
+      <Header />
+      <main className="min-h-screen bg-[#F3F2EF] py-6">
       <div className="max-w-[650px] mx-auto px-4 w-full">
         {/* ── Columna central: Feed ───────────────────────── */}
         <section className="flex flex-col gap-3">
@@ -68,18 +108,44 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Posts */}
-          {POSTS.map((post) => (
+          {/* Estado: error */}
+          {error && (
+            <div className="bg-white rounded-lg border border-red-200 p-5 text-center">
+              <p className="text-sm text-red-700 mb-3">{error}</p>
+              <button
+                onClick={handleRetry}
+                className="px-4 py-1.5 rounded-full text-sm font-semibold bg-[#0A66C2] text-white hover:bg-[#004182] cursor-pointer transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          {/* Estado: vacío */}
+          {!error && posts.length === 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <p className="text-gray-700 text-sm font-medium">
+                Aún no hay publicaciones
+              </p>
+              <p className="text-gray-500 text-xs mt-1">
+                ¡Sé el primero en compartir algo con la comunidad!
+              </p>
+            </div>
+          )}
+
+          {/* Posts desde MongoDB */}
+          {posts.map((post) => (
             <PostCard
-              key={post.id}
-              name={post.name}
-              avatarColor={post.avatarColor}
-              subtitle={post.subtitle}
-              time={post.time}
-              isPublic={post.isPublic}
-              content={post.content}
-              image={post.image}
-              initialLikes={post.initialLikes}
+              key={post._id}
+              id={post._id}
+              name={post.idusuario || 'Usuario'}
+              avatarColor={colorFromString(post.idusuario)}
+              subtitle="Miembro de LinkedIn Devs"
+              time={post.fecha ? dayjs(post.fecha).fromNow() : ''}
+              isPublic
+              content={post.texto || ''}
+              archivos={post.archivos || []}
+              initialRecomendaciones={post.recomendaciones || 0}
               currentUserAvatar="https://i.pravatar.cc/48?img=12"
             />
           ))}
@@ -99,7 +165,9 @@ export default function Home() {
       <CreatePostModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        onPosted={handlePosted}
       />
-    </main>
+      </main>
+    </>
   )
 }

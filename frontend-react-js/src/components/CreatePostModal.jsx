@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, SendHorizonal, Loader2, Paperclip, FileText, Film } from 'lucide-react'
+import { X, SendHorizonal, Loader2, Paperclip } from 'lucide-react'
+import { showToast } from "nextjs-toast-notify";
+import FilePreview from './FilePreview'
 
 const API_URL = import.meta.env.VITE_API_URL
 const ACCEPTED_TYPES = import.meta.env.VITE_ACCEPTED_FILE_TYPES
@@ -72,16 +74,37 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
     setError(null)
 
     try {
+      /* 1. Subir archivos al backend (si hay) */
+      let archivosSubidos = []
+
+      if (files.length > 0) {
+        const formData = new FormData()
+        files.forEach((f) => formData.append('archivos', f.file))
+
+        const upRes = await fetch(`${API_URL}/subirarchivos`, {
+          method: 'POST',
+          body: formData
+        })
+
+        const upData = await upRes.json().catch(() => ({}))
+        if (!upRes.ok) {
+          showToast.error("Error al subir archivos", {
+            position: "bottom-right",
+            transition: "swingInverted",
+            sound: true,
+          });
+        }
+        archivosSubidos = upData.archivos || []
+      }
+
+      /* 2. Crear la publicación con las URLs ya subidas */
       const res = await fetch(`${API_URL}/agregarpublicacion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           idusuario: DEFAULT_USER_ID,
           texto: text.trim(),
-          archivos: files.map((f) => ({
-            url: f.file.name,
-            tipo: f.tipo
-          }))
+          archivos: archivosSubidos
         })
       })
 
@@ -92,6 +115,11 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
       onPosted?.(data.publicacion)
       resetForm()
       onClose()
+      showToast.success("La publicación se ha creado correctamente", {
+        position: "bottom-right",
+        transition: "swingInverted",
+        sound: true,
+      });
     } catch (err) {
       setError(err.message || 'No se pudo publicar. Inténtalo de nuevo.')
     } finally {
@@ -146,38 +174,14 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
           {files.length > 0 && (
             <div className="mt-3 grid grid-cols-3 gap-2">
               {files.map((f, idx) => (
-                <div
+                <FilePreview
                   key={idx}
-                  className="relative group rounded-lg overflow-hidden border border-gray-200 bg-gray-50 aspect-square flex items-center justify-center"
-                >
-                  {f.tipo.startsWith('image/') ? (
-                    <img
-                      src={f.preview}
-                      alt={f.file.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : f.tipo.startsWith('video/') ? (
-                    <div className="flex flex-col items-center gap-1 text-gray-500 px-2 text-center">
-                      <Film className="w-8 h-8" />
-                      <span className="text-xs truncate w-full">{f.file.name}</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-gray-500 px-2 text-center">
-                      <FileText className="w-8 h-8" />
-                      <span className="text-xs truncate w-full">{f.file.name}</span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => removeFile(idx)}
-                    disabled={loading}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors cursor-pointer disabled:opacity-50"
-                    aria-label={`Quitar ${f.file.name}`}
-                    type="button"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                  file={f.file}
+                  preview={f.preview}
+                  tipo={f.tipo}
+                  disabled={loading}
+                  onRemove={() => removeFile(idx)}
+                />
               ))}
             </div>
           )}

@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Globe, ThumbsUp, MessageSquare, Repeat2, Send, X, } from 'lucide-react'
+import PostMedia from './PostMedia'
+
+const API_URL = import.meta.env.VITE_API_URL
 
 /* ─── Datos de acción ─────────────────────────────────────── */
 const ACTIONS = [
@@ -9,16 +12,16 @@ const ACTIONS = [
   { icon: Send,           label: 'Enviar'     },
 ]
 
-/* ─── Avatar cuadrado con inicial (fallback sin imagen) ────── */
-function SquareAvatar({ src, name, color = '#C0392B', size = 'md' }) {
-  const sizes = { sm: 'w-8 h-8 text-sm', md: 'w-11 h-11 text-lg' }
+/* ─── Avatar circular con inicial (fallback sin imagen) ────── */
+function Avatar({ src, name, color = '#C0392B', size = 'md' }) {
+  const sizes = { sm: 'w-8 h-8 text-sm', md: 'w-12 h-12 text-lg' }
   const cls = sizes[size] ?? sizes.md
 
   return src ? (
-    <img src={src} alt={name} className={`${cls} rounded-lg object-cover`} />
+    <img src={src} alt={name} className={`${cls} rounded-full object-cover shrink-0`} />
   ) : (
     <div
-      className={`${cls} rounded-lg flex items-center justify-center font-bold text-white shrink-0`}
+      className={`${cls} rounded-full flex items-center justify-center font-bold text-white shrink-0`}
       style={{ backgroundColor: color }}
     >
       {name?.[0]?.toUpperCase()}
@@ -49,22 +52,23 @@ function ActionButton({ icon: Icon, label, active, onClick }) {
 
 /* ─── Componente principal ─────────────────────────────────── */
 export default function PostCard({
-  avatar       = null,
-  avatarColor  = '#C0392B',
-  name         = 'Usuario',
-  subtitle     = '500 seguidores',
-  time         = '1 h',
-  isPublic     = true,
-  content      = '',
-  image        = null,
-  initialLikes = 0,
-  currentUserAvatar = null,
+  id                     = null,
+  avatar                 = null,
+  avatarColor            = '#C0392B',
+  name                   = 'Usuario',
+  subtitle               = '500 seguidores',
+  time                   = '1 h',
+  isPublic               = true,
+  content                = '',
+  archivos               = [],
+  initialRecomendaciones = 0,
+  currentUserAvatar      = null,
   onClose,
 }) {
-  const [liked,    setLiked]    = useState(false)
-  const [likes,    setLikes]    = useState(initialLikes)
-  const [expanded, setExpanded] = useState(false)
-  const [visible,  setVisible]  = useState(true)
+  const [recomendado,     setRecomendado]     = useState(false)
+  const [recomendaciones, setRecomendaciones] = useState(initialRecomendaciones)
+  const [expanded,        setExpanded]        = useState(false)
+  const [visible,         setVisible]         = useState(true)
 
   if (!visible) return null
 
@@ -73,9 +77,31 @@ export default function PostCard({
     onClose?.()
   }
 
-  const handleLike = () => {
-    setLiked(prev => !prev)
-    setLikes(prev => prev + (liked ? -1 : 1))
+  const handleRecomendar = async () => {
+    /* Solo se permite recomendar una vez por sesión */
+    if (recomendado) return
+
+    /* Optimistic update */
+    setRecomendado(true)
+    setRecomendaciones(prev => prev + 1)
+
+    /* Si no hay id real (post hardcodeado), no llamamos al backend */
+    if (!id) return
+
+    try {
+      const res = await fetch(`${API_URL}/recomendarpublicacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idpublicacion: id })
+      })
+
+      if (!res.ok) throw new Error(`Error ${res.status}`)
+    } catch (err) {
+      /* Revertir si falla */
+      setRecomendado(false)
+      setRecomendaciones(prev => prev - 1)
+      console.error('No se pudo recomendar la publicación:', err)
+    }
   }
 
   /* Truncar texto largo */
@@ -90,7 +116,7 @@ export default function PostCard({
 
       {/* ── Cabecera ──────────────────────────────────────── */}
       <div className="flex items-start gap-3 px-4 pt-4 pb-2">
-        <SquareAvatar src={avatar} name={name} color={avatarColor} />
+        <Avatar src={avatar} name={name} color={avatarColor} />
 
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-gray-900 leading-tight">{name}</p>
@@ -132,25 +158,17 @@ export default function PostCard({
         </div>
       )}
 
-      {/* ── Imagen del post ───────────────────────────────── */}
-      {image && (
-        <div className="w-full aspect-video overflow-hidden border-t border-b border-gray-200">
-          <img
-            src={image}
-            alt="Imagen del post"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+      {/* ── Archivos adjuntos (imagen, video, PDF, etc.) ──── */}
+      <PostMedia archivos={archivos} />
 
-      {/* ── Contador de reacciones ────────────────────────── */}
-      {likes > 0 && (
+      {/* ── Contador de recomendaciones ───────────────────── */}
+      {recomendaciones > 0 && (
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-gray-200">
           <span className="w-5 h-5 rounded-full bg-[#0A66C2] flex items-center justify-center">
             <ThumbsUp className="w-3 h-3 text-white" fill="white" strokeWidth={0} />
           </span>
           <span className="text-xs text-gray-500 hover:text-[#0A66C2] hover:underline cursor-pointer">
-            {likes}
+            {recomendaciones}
           </span>
         </div>
       )}
@@ -170,8 +188,8 @@ export default function PostCard({
             key={label}
             icon={icon}
             label={label}
-            active={label === 'Recomendar' && liked}
-            onClick={label === 'Recomendar' ? handleLike : undefined}
+            active={label === 'Recomendar' && recomendado}
+            onClick={label === 'Recomendar' ? handleRecomendar : undefined}
           />
         ))}
       </div>

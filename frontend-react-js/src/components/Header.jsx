@@ -33,14 +33,14 @@ export default function Header() {
         </a>
 
         {/* ── Buscador ── */}
-        <div className="relative hidden sm:flex items-center bg-[#EEF3F8] rounded-md w-[280px] shrink-0">
-          <Search className="absolute left-3 text-gray-500 w-4 h-4" />
+        <div className="relative hidden sm:flex items-center bg-white border border-gray-300 rounded-full w-[280px] shrink-0 focus-within:border-gray-500 transition-colors">
+          <Search className="absolute left-4 text-gray-700 w-4 h-4" strokeWidth={2.5} />
           <input
             type="text"
             placeholder="Buscar"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            className="w-full bg-transparent pl-9 pr-3 py-2 text-sm text-gray-800 placeholder-gray-500 outline-none"
+            className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-800 placeholder-gray-500 outline-none rounded-full"
           />
         </div>
 
