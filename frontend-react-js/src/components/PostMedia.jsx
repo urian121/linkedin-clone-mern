@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react'
 import { FileText, Presentation, ExternalLink } from 'lucide-react'
 import MediaSlider from './MediaSlider'
+import useInView from '../hooks/useInView'
 
 const PPT_MIME_TYPES = [
   'application/vnd.ms-powerpoint',
@@ -25,15 +27,32 @@ function ImageMedia({ url }) {
   )
 }
 
-/* ─── Video ────────────────────────────────────────────────── */
+/* ─── Video con autoplay al entrar al viewport ─────────────── */
 function VideoMedia({ url }) {
+  const { ref, inView } = useInView({ threshold: 0.6 })
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    if (inView) {
+      video.play().catch(() => {})
+    } else {
+      video.pause()
+    }
+  }, [inView])
+
   return (
-    <div className="w-full border-t border-b border-gray-200 bg-black">
+    <div ref={ref} className="w-full border-t border-b border-gray-200 bg-black">
       <video
+        ref={videoRef}
         src={url}
         controls
-        preload="metadata"
+        muted
+        loop
         playsInline
+        preload="metadata"
         className="w-full max-h-[600px]"
       />
     </div>
@@ -82,16 +101,10 @@ function PdfMedia({ url, paginas }) {
   )
 }
 
-/* ─── PowerPoint: slider de páginas o tarjeta fallback ─────── */
-function PptMedia({ url, paginas }) {
+/* ─── PowerPoint: solo tarjeta clickable (sin vista previa) ── */
+function PptMedia({ url }) {
   const ext = getExt(url)
   const label = ext === 'pptx' ? 'PPTX' : 'PPT'
-
-  if (paginas > 0) {
-    return (
-      <MediaSlider url={url} paginas={paginas} titulo={`Presentación ${label}`} />
-    )
-  }
 
   return (
     <DocFallback
@@ -111,7 +124,7 @@ function MediaItem({ archivo }) {
   if (tipo.startsWith('image/')) return <ImageMedia url={url} />
   if (tipo.startsWith('video/')) return <VideoMedia url={url} />
   if (tipo === 'application/pdf') return <PdfMedia url={url} paginas={paginas} />
-  if (PPT_MIME_TYPES.includes(tipo)) return <PptMedia url={url} paginas={paginas} />
+  if (PPT_MIME_TYPES.includes(tipo)) return <PptMedia url={url} />
 
   return null
 }
