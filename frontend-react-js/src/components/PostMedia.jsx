@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { FileText, Presentation, ExternalLink } from 'lucide-react'
 import MediaSlider from './MediaSlider'
+import ImageGrid from './ImageGrid'
 import useInView from '../hooks/useInView'
 
 const PPT_MIME_TYPES = [
@@ -12,19 +13,6 @@ const getExt = (url = '') => {
   const limpio = url.split('?')[0].split('#')[0]
   const punto = limpio.lastIndexOf('.')
   return punto >= 0 ? limpio.slice(punto + 1).toLowerCase() : ''
-}
-
-/* ─── Imagen ───────────────────────────────────────────────── */
-function ImageMedia({ url }) {
-  return (
-    <div className="w-full max-h-[600px] overflow-hidden border-t border-b border-gray-200 bg-black">
-      <img
-        src={url}
-        alt="Imagen del post"
-        className="w-full h-full object-contain max-h-[600px] mx-auto"
-      />
-    </div>
-  )
 }
 
 /* ─── Video con autoplay al entrar al viewport ─────────────── */
@@ -116,12 +104,11 @@ function PptMedia({ url }) {
   )
 }
 
-/* ─── Item individual: decide qué render usar según tipo ──── */
-function MediaItem({ archivo }) {
+/* ─── Item individual no-imagen: video, pdf o ppt ──────────── */
+function OtroMedia({ archivo }) {
   const { url, tipo = '', paginas = 0 } = archivo
   if (!url) return null
 
-  if (tipo.startsWith('image/')) return <ImageMedia url={url} />
   if (tipo.startsWith('video/')) return <VideoMedia url={url} />
   if (tipo === 'application/pdf') return <PdfMedia url={url} paginas={paginas} />
   if (PPT_MIME_TYPES.includes(tipo)) return <PptMedia url={url} />
@@ -133,10 +120,17 @@ function MediaItem({ archivo }) {
 export default function PostMedia({ archivos = [] }) {
   if (!archivos.length) return null
 
+  const imagenes = archivos.filter((a) => a.tipo?.startsWith('image/'))
+  const otros = archivos.filter((a) => !a.tipo?.startsWith('image/'))
+
   return (
     <div>
-      {archivos.map((archivo, i) => (
-        <MediaItem key={i} archivo={archivo} />
+      {imagenes.length > 0 && (
+        <ImageGrid urls={imagenes.map((a) => a.url)} />
+      )}
+
+      {otros.map((archivo, i) => (
+        <OtroMedia key={i} archivo={archivo} />
       ))}
     </div>
   )

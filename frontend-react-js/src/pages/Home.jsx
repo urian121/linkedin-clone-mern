@@ -7,7 +7,7 @@ import 'dayjs/locale/es'
 import Header from '../components/Header'
 import PostCard from '../components/PostCard'
 import CreatePostModal from '../components/CreatePostModal'
-import HomeSkeleton from '../components/HomeSkeleton'
+import HomeSkeleton from '../components/Skeleton/HomeSkeleton'
 
 dayjs.extend(relativeTime)
 dayjs.locale('es')

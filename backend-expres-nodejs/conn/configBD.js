@@ -5,18 +5,12 @@ const DB_URI = `mongodb://${process.env.DB_USER}:${encodeURIComponent(process.en
 
 const conectarDB = async () => {
     try {
-
         await mongoose.connect(DB_URI)
-
         console.log('✅ Conexión correcta a MongoDB')
 
     } catch (error) {
-
-        console.log('❌ Error MongoDB')
-        console.log(error)
-
+        console.log('❌ Error MongoDB', error.message)
         process.exit(1)
-
     }
 }
 

@@ -2,7 +2,6 @@ const express = require('express')
 const cors = require('cors')
 
 const conectarDB = require('./conn/configBD')
-
 const app = express()
 
 // conectar mongodb

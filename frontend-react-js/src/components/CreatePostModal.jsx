@@ -1,32 +1,57 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, SendHorizonal, Loader2, Paperclip } from 'lucide-react'
+import { X, SendHorizonal, Loader2, Paperclip, Smile } from 'lucide-react'
 import { showToast } from "nextjs-toast-notify";
+import Picker from '@emoji-mart/react'
+import emojiData from '@emoji-mart/data'
 import FilePreview from './FilePreview'
+import Tooltip from './Tooltip'
 
 const API_URL = import.meta.env.VITE_API_URL
 const ACCEPTED_TYPES = import.meta.env.VITE_ACCEPTED_FILE_TYPES
 const DEFAULT_USER_ID = import.meta.env.VITE_DEFAULT_USER_ID
+const MAX_IMAGES = Number(import.meta.env.VITE_MAX_IMAGES) || 6
 
 export default function CreatePostModal({ isOpen, onClose, onPosted }) {
   const [text, setText] = useState('')
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [showEmoji, setShowEmoji] = useState(false)
 
   const fileInputRef = useRef(null)
+  const textareaRef = useRef(null)
+  const emojiWrapperRef = useRef(null)
 
   /* Cerrar con Escape (no si está publicando) */
   useEffect(() => {
     if (!isOpen) return
 
     const handler = (e) => {
-      if (e.key === 'Escape' && !loading) onClose()
+      if (e.key !== 'Escape') return
+      if (showEmoji) {
+        setShowEmoji(false)
+        return
+      }
+      if (!loading) onClose()
     }
 
     window.addEventListener('keydown', handler)
 
     return () => window.removeEventListener('keydown', handler)
-  }, [isOpen, onClose, loading])
+  }, [isOpen, onClose, loading, showEmoji])
+
+  /* Cerrar emoji picker al hacer click fuera */
+  useEffect(() => {
+    if (!showEmoji) return
+
+    const handler = (e) => {
+      if (emojiWrapperRef.current?.contains(e.target)) return
+      setShowEmoji(false)
+    }
+
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showEmoji])
 
   if (!isOpen) return null
 
@@ -39,16 +64,37 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
 
   const handleFilesSelected = (e) => {
     const selected = Array.from(e.target.files || [])
+    e.target.value = ''
     if (selected.length === 0) return
 
-    const mapped = selected.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-      tipo: file.type
-    }))
+    const imagenesActuales = files.filter((f) => f.tipo.startsWith('image/')).length
+    let imagenesAceptadas = 0
+    const rechazadas = []
 
-    setFiles((prev) => [...prev, ...mapped])
-    e.target.value = ''
+    const mapped = selected.flatMap((file) => {
+      if (file.type.startsWith('image/')) {
+        if (imagenesActuales + imagenesAceptadas >= MAX_IMAGES) {
+          rechazadas.push(file.name)
+          return []
+        }
+        imagenesAceptadas++
+      }
+      return [{
+        file,
+        preview: URL.createObjectURL(file),
+        tipo: file.type
+      }]
+    })
+
+    if (rechazadas.length > 0) {
+      showToast.warning(`Solo se permiten ${MAX_IMAGES} imágenes por publicación`, {
+        position: 'bottom-right',
+        transition: 'swingInverted',
+        sound: true,
+      })
+    }
+
+    if (mapped.length > 0) setFiles((prev) => [...prev, ...mapped])
   }
 
   const removeFile = (idx) => {
@@ -65,6 +111,30 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
     files.forEach((f) => URL.revokeObjectURL(f.preview))
     setFiles([])
     setError(null)
+    setShowEmoji(false)
+  }
+
+  /* Inserta el emoji en la posición actual del cursor del textarea */
+  const insertarEmoji = (emoji) => {
+    const ta = textareaRef.current
+    const symbol = emoji.native
+
+    if (!ta) {
+      setText((prev) => prev + symbol)
+      return
+    }
+
+    const start = ta.selectionStart ?? text.length
+    const end = ta.selectionEnd ?? text.length
+    const nuevoTexto = text.slice(0, start) + symbol + text.slice(end)
+
+    setText(nuevoTexto)
+
+    requestAnimationFrame(() => {
+      ta.focus()
+      const pos = start + symbol.length
+      ta.setSelectionRange(pos, pos)
+    })
   }
 
   const handleSubmit = async () => {
@@ -137,7 +207,7 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
       {/* ── Modal ─────────────────────────────────────────── */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-2xl w-full max-w-[720px] min-h-[420px] mx-4 flex flex-col overflow-hidden shadow-2xl"
+        className="bg-white rounded-2xl w-full max-w-[720px] min-h-[420px] mx-4 flex flex-col shadow-2xl"
         style={{
           animation: 'modal-card-in 0.28s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
@@ -161,6 +231,7 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
         {/* ── Textarea ───────────────────────────────────── */}
         <div className="flex-1 px-6 py-5">
           <textarea
+            ref={textareaRef}
             autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -196,17 +267,57 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
           )}
 
           <div className="flex items-center justify-between">
-            {/* ── Botón adjuntar archivo ───────────────── */}
-            <button
-              type="button"
-              onClick={openFilePicker}
-              disabled={loading}
-              aria-label="Agregar archivo"
-              title="Agregar archivo"
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-[#0A66C2] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* ── Botón adjuntar archivo ───────────────── */}
+              <Tooltip label="Agregar archivo">
+                <button
+                  type="button"
+                  onClick={openFilePicker}
+                  disabled={loading}
+                  aria-label="Agregar archivo"
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-[#0A66C2] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+              </Tooltip>
+
+              {/* ── Botón emoji ──────────────────────────── */}
+              <div ref={emojiWrapperRef} className="relative">
+                <Tooltip label="Agregar emoji">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmoji((v) => !v)}
+                    disabled={loading}
+                    aria-label="Agregar emoji"
+                    className={
+                      showEmoji
+                        ? 'p-2 rounded-full bg-gray-100 text-[#0A66C2] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                        : 'p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-[#0A66C2] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                    }
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+
+                {showEmoji && (
+                  <div
+                    className="absolute left-0 z-50"
+                    style={{ bottom: 'calc(100% + 8px)' }}
+                  >
+                    <Picker
+                      data={emojiData}
+                      onEmojiSelect={insertarEmoji}
+                      locale="es"
+                      theme="light"
+                      previewPosition="none"
+                      skinTonePosition="search"
+                      navPosition="bottom"
+                      maxFrequentRows={1}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Input file oculto */}
             <input

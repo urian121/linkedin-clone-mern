@@ -11,6 +11,9 @@ const cloudinary = require('../conn/configCloudinary')
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB) || 100
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
+// Máximo de imágenes por publicación
+const MAX_IMAGES = Number(process.env.MAX_IMAGES) || 6
+
 // Tipos MIME permitidos. Acepta wildcards tipo "image/*" o MIME exactos.
 const ALLOWED_MIME_TYPES = (process.env.ALLOWED_MIME_TYPES || 'image/*,video/*,application/pdf')
     .split(',')
@@ -129,6 +132,13 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
         if (!req.files || req.files.length === 0) {
             return res.status(400).send({
                 error: 'No se enviaron archivos'
+            })
+        }
+
+        const totalImagenes = req.files.filter((f) => f.mimetype.startsWith('image/')).length
+        if (totalImagenes > MAX_IMAGES) {
+            return res.status(400).send({
+                error: `Solo se permiten ${MAX_IMAGES} imágenes por publicación`
             })
         }
 
