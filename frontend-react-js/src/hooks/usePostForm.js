@@ -15,7 +15,7 @@ const mbABytes = (mb) => mb * 1024 * 1024
 const limiteBytesArchivo = (tipo = '') =>
   tipo.startsWith('video/') ? mbABytes(MAX_VIDEO_MB) : mbABytes(MAX_IMAGEN_MB)
 
-const MSG_PESO_LOCAL = `Archivo muy pesado (máx ${MAX_IMAGEN_MB} MB para imágenes/docs, ${MAX_VIDEO_MB} MB para videos).`
+const MSG_PESO_LOCAL = `Archivo muy pesado (máx ${MAX_IMAGEN_MB} MB imágenes/docs, ${MAX_VIDEO_MB} MB videos).`
 
 /* Encapsula todo el estado y la lógica del formulario de crear publicación:
    texto, archivos, mejora con IA, subida a Cloudinary y publicación. */

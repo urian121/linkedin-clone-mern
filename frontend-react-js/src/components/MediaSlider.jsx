@@ -56,7 +56,7 @@ export default function MediaSlider({ url, paginas, titulo }) {
           type="button"
           onClick={() => irA(-1)}
           aria-label="Página anterior"
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/70 hover:bg-black/85 text-white flex items-center justify-center transition-colors"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/70 hover:bg-black/85 text-white flex items-center justify-center transition-colors hover:cursor-pointer"
         >
           <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
         </button>
@@ -67,7 +67,7 @@ export default function MediaSlider({ url, paginas, titulo }) {
           type="button"
           onClick={() => irA(1)}
           aria-label="Página siguiente"
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/70 hover:bg-black/85 text-white flex items-center justify-center transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/70 hover:bg-black/85 text-white flex items-center justify-center transition-colors hover:cursor-pointer"
         >
           <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
         </button>

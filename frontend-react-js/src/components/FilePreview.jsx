@@ -56,7 +56,8 @@ function DocCard({ file, label, color, Icon }) {
 
 /* ─── Componente principal: una tarjeta por archivo ────────── */
 export default function FilePreview({ file, preview, tipo, onRemove, disabled }) {
-  const isImage = tipo.startsWith('image/')
+  const ext = getExtension(file.name)
+  const isImage = tipo.startsWith('image/') || ext === 'gif'
   const isVideo = tipo.startsWith('video/')
   const isPdf   = tipo === 'application/pdf'
   const isPpt   = isPptFile(tipo, file.name)

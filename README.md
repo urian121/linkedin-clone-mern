@@ -172,7 +172,7 @@ cp .env.example .env
 
 ```env
 VITE_API_URL=http://localhost:5000/api
-VITE_ACCEPTED_FILE_TYPES=image/*,video/*,application/pdf,.ppt,.pptx
+VITE_ACCEPTED_FILE_TYPES=image/*,.gif,video/*,application/pdf,.ppt,.pptx
 VITE_DEFAULT_USER_ID=demo-user
 VITE_MAX_IMAGES=6
 VITE_MAX_IMAGEN_MB=20

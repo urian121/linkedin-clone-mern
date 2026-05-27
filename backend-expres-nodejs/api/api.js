@@ -18,7 +18,7 @@ const limiteBytesParaArchivo = (mimetype = '') =>
         ? mbABytes(MAX_VIDEO_MB)
         : mbABytes(MAX_IMAGEN_MB)
 
-const MSG_PESO_LOCAL = `Archivo muy pesado (máx ${MAX_IMAGEN_MB} MB para imágenes/docs, ${MAX_VIDEO_MB} MB para videos).`
+const MSG_PESO_LOCAL = `Archivo muy pesado (máx ${MAX_IMAGEN_MB} MB imágenes/docs, ${MAX_VIDEO_MB} MB videos).`
 const MSG_PESO_CLOUDINARY = 'Cloudinary rechazó el archivo por su peso. Intenta comprimirlo.'
 
 // Máximo de imágenes por publicación
@@ -38,20 +38,39 @@ const isMimeAllowed = (mimetype = '') =>
         return mimetype === rule
     })
 
+const EXTENSION_DESDE_NOMBRE = (nombre = '') => {
+    const punto = nombre.lastIndexOf('.')
+    return punto >= 0 ? nombre.slice(punto + 1).toLowerCase() : ''
+}
+
+/* Algunos navegadores envían application/octet-stream para GIF; aceptamos por extensión. */
+const EXTENSIONES_PERMITIDAS = new Set([
+    'gif', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'heic', 'heif',
+    'mp4', 'webm', 'mov', 'pdf', 'ppt', 'pptx'
+])
+
+const archivoPermitido = (file) =>
+    isMimeAllowed(file.mimetype)
+    || EXTENSIONES_PERMITIDAS.has(EXTENSION_DESDE_NOMBRE(file.originalname))
+
 const EXT_POR_MIME = {
+    'image/gif': 'gif',
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/bmp': 'bmp',
     'application/pdf': 'pdf',
     'application/vnd.ms-powerpoint': 'ppt',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
 }
 
 const obtenerExtensionArchivo = (file) => {
-    const nombre = file.originalname || ''
-    const punto = nombre.lastIndexOf('.')
-    if (punto >= 0) {
-        const ext = nombre.slice(punto + 1).toLowerCase()
-        if (ext) return ext
-    }
-    return EXT_POR_MIME[file.mimetype] || ''
+    if (EXT_POR_MIME[file.mimetype]) return EXT_POR_MIME[file.mimetype]
+
+    const ext = EXTENSION_DESDE_NOMBRE(file.originalname || '')
+    if (ext) return ext
+
+    return ''
 }
 
 /*
@@ -61,10 +80,23 @@ const obtenerExtensionArchivo = (file) => {
  *  - 'video'  → cubierto por 'auto' para mp4/webm/etc.
  *  - 'raw'    → no procesa el archivo, lo entrega tal cual (PPT/PPTX y otros)
  */
-const resourceTypeParaArchivo = (mimetype = '') => {
+const resourceTypeParaArchivo = (mimetype = '', ext = '') => {
     if (mimetype === 'application/pdf') return 'image'
+    if (mimetype === 'image/gif' || ext === 'gif') return 'image'
     if (mimetype.startsWith('image/') || mimetype.startsWith('video/')) return 'auto'
     return 'raw'
+}
+
+const opcionesSubidaCloudinary = (file, folder) => {
+    const ext = obtenerExtensionArchivo(file)
+    const publicId = ext ? `${uuidv4()}.${ext}` : uuidv4()
+
+    return {
+        folder,
+        public_id: publicId,
+        resource_type: resourceTypeParaArchivo(file.mimetype, ext),
+        timeout: 120000
+    }
 }
 
 // ──────────────────────────────────────────────
@@ -75,7 +107,7 @@ const upload = multer({
     /* Multer usa el tope más alto; la validación fina por tipo va en /subirarchivos */
     limits: { fileSize: mbABytes(MAX_VIDEO_MB) },
     fileFilter: (req, file, cb) => {
-        if (isMimeAllowed(file.mimetype)) return cb(null, true)
+        if (archivoPermitido(file)) return cb(null, true)
         const err = new Error(`Tipo de archivo no permitido: ${file.mimetype}`)
         err.code = 'INVALID_FILE_TYPE'
         cb(err)
@@ -191,17 +223,9 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
 
         const subidas = await Promise.all(
 
-            req.files.map((file) => {
-                const ext = obtenerExtensionArchivo(file)
-                const publicId = ext ? `${uuidv4()}.${ext}` : uuidv4()
-
-                return subirBufferACloudinary(file.buffer, {
-                    folder,
-                    public_id: publicId,
-                    resource_type: resourceTypeParaArchivo(file.mimetype),
-                    timeout: 120000
-                })
-            })
+            req.files.map((file) =>
+                subirBufferACloudinary(file.buffer, opcionesSubidaCloudinary(file, folder))
+            )
 
         )
 
@@ -218,10 +242,15 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
         })
 
     } catch (err) {
-        console.error('Error al subir archivos:', err)
+        const detalle = req.files?.map((f) => ({
+            nombre: f.originalname,
+            tipo: f.mimetype,
+            mb: (f.size / (1024 * 1024)).toFixed(2)
+        }))
+        console.error('Error al subir archivos:', err, detalle)
 
         /* Cloudinary devuelve "File size too large" cuando el archivo
-           supera el tope del plan (10 MB para imágenes en plan free). */
+           supera el tope del plan (10 MB para imágenes/GIF en plan free). */
         const esPesoCloudinary =
             err?.message?.includes('File size too large')
             || (err?.http_code === 400 && String(err?.message || '').toLowerCase().includes('size'))
