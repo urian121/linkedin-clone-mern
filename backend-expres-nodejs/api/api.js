@@ -4,7 +4,7 @@ const router = express.Router()
 const mongoose = require('mongoose')
 const multer = require('multer')
 const { v4: uuidv4 } = require('uuid')
-
+const { GoogleGenAI } = require("@google/genai");
 const cloudinary = require('../conn/configCloudinary')
 
 // Límite por archivo (MB). Un video "de 10 MB" suele pesar ~10.5 MiB y rebasaba el tope anterior.
@@ -271,4 +271,144 @@ router.post('/recomendarpublicacion', async (req, res) => {
 
 })
 
-module.exports = router
+// ──────────────────────────────────────────────
+// VALIDAR CONFIGURACIÓN
+// ──────────────────────────────────────────────
+if (!process.env.GEMINI_API_KEY) {
+    throw new Error('Falta GEMINI_API_KEY en variables de entorno');
+}
+
+// ──────────────────────────────────────────────
+// GOOGLE GEMINI
+// ──────────────────────────────────────────────
+const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY
+});
+
+// ──────────────────────────────────────────────
+// MEJORAR PUBLICACIÓN CON IA
+// ──────────────────────────────────────────────
+router.post('/mejorarpost', async (req, res) => {
+
+    try {
+
+        const texto = String(req.body.texto || '')
+            .trim()
+            .replace(/\s+/g, ' ');
+
+        // Validaciones
+        if (!texto) {
+            return res.status(400).send({
+                error: 'Escribe algo antes de mejorar con IA'
+            });
+        }
+
+        if (texto.length > 3000) {
+            return res.status(400).send({
+                error: 'El texto es demasiado largo (máx. 3000 caracteres)'
+            });
+        }
+
+        // Prompt optimizado
+        const prompt = `
+            Eres un experto en copywriting y redacción para LinkedIn.
+
+            Haz que el inicio genere curiosidad y aumente la probabilidad de lectura completa.
+
+            Tu tarea es mejorar publicaciones manteniendo SIEMPRE:
+            - el idioma original
+            - la intención original
+            - el mensaje principal
+            - el tono del autor
+
+            Debes:
+            - corregir ortografía y gramática
+            - mejorar claridad y fluidez
+            - aumentar engagement y legibilidad
+            - mejorar estructura y ritmo
+            - eliminar redundancias
+            - hacer el texto más profesional, natural y humano
+            - mejorar el impacto del inicio
+
+            NO debes:
+            - inventar información
+            - cambiar el significado
+            - agregar hashtags
+            - agregar emojis nuevos
+            - agregar saludos o despedidas
+            - responder con explicaciones
+            - usar markdown
+            - usar títulos
+            - usar listas
+            - usar frases como "Aquí tienes"
+
+            Devuelve únicamente el texto final listo para publicar en LinkedIn.
+
+            Texto:
+            ${texto}
+        `;
+
+        // Timeout de seguridad
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error('Timeout Gemini'));
+            }, 15000);
+        });
+
+        // Solicitud Gemini
+        const geminiPromise = ai.models.generateContent({
+            model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                temperature: 0.7,
+                topP: 0.9,
+                maxOutputTokens: 800
+            }
+        });
+
+        const response = await Promise.race([
+            geminiPromise,
+            timeoutPromise
+        ]);
+
+        const textoMejorado = response.text?.trim();
+
+        if (!textoMejorado) {
+            return res.status(502).send({
+                error: 'La IA devolvió una respuesta vacía'
+            });
+        }
+
+        // Respuesta
+        return res.send({
+            original: texto,
+            mejorado: textoMejorado
+        });
+
+    } catch (err) {
+
+        console.error('Error al mejorar texto con IA:', err);
+
+        // Rate limit Gemini
+        if (err?.status === 429) {
+            return res.status(429).send({
+                error: 'Demasiadas solicitudes a la IA'
+            });
+        }
+
+        // Timeout
+        if (err.message === 'Timeout Gemini') {
+            return res.status(504).send({
+                error: 'La IA tardó demasiado en responder'
+            });
+        }
+
+        return res.status(500).send({
+            error: 'No se pudo procesar la solicitud'
+        });
+
+    }
+
+});
+
+module.exports = router;

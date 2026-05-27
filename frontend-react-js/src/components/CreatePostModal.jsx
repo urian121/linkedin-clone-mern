@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, SendHorizonal, Loader2, Paperclip, Smile } from 'lucide-react'
+import { X, SendHorizonal, Loader2, Paperclip, Smile, Sparkles } from 'lucide-react'
 import { showToast } from "nextjs-toast-notify";
 import Picker from '@emoji-mart/react'
 import emojiData from '@emoji-mart/data'
@@ -17,6 +17,7 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showEmoji, setShowEmoji] = useState(false)
+  const [mejorandoIA, setMejorandoIA] = useState(false)
 
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
@@ -112,6 +113,41 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
     setFiles([])
     setError(null)
     setShowEmoji(false)
+  }
+
+  /* Mejora el texto del post usando Gemini (vía backend) */
+  const mejorarConIA = async () => {
+    const original = text.trim()
+    if (!original || mejorandoIA || loading) return
+
+    setMejorandoIA(true)
+    try {
+      const res = await fetch(`${API_URL}/mejorarpost`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: original })
+      })
+
+      const data = await res.json().catch(() => ({}))
+      const textoMejorado = data.mejorado || data.texto
+
+      if (!res.ok || !textoMejorado) {
+        throw new Error(data.error || 'No se pudo mejorar el texto')
+      }
+
+      setText(textoMejorado)
+      showToast.success('Texto mejorado con IA', {
+        position: 'bottom-right',
+        transition: 'swingInverted',
+      })
+    } catch (err) {
+      showToast.error(err.message || 'No se pudo mejorar el texto', {
+        position: 'bottom-right',
+        transition: 'swingInverted',
+      })
+    } finally {
+      setMejorandoIA(false)
+    }
   }
 
   /* Inserta el emoji en la posición actual del cursor del textarea */
@@ -229,7 +265,14 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
         </div>
 
         {/* ── Textarea ───────────────────────────────────── */}
-        <div className="flex-1 px-6 py-5">
+        <div
+          className={
+            loading
+              ? 'flex-1 px-6 py-5 opacity-60 pointer-events-none transition-opacity'
+              : 'flex-1 px-6 py-5 transition-opacity'
+          }
+          aria-busy={loading}
+        >
           <textarea
             ref={textareaRef}
             autoFocus
@@ -238,7 +281,7 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
             disabled={loading}
             placeholder="¿Sobre qué quieres hablar?"
             rows={files.length > 0 ? 4 : 10}
-            className="w-full resize-none text-gray-800 text-lg placeholder-gray-400 outline-none leading-relaxed disabled:opacity-60"
+            className="w-full resize-none text-gray-800 text-lg placeholder-gray-400 outline-none leading-relaxed"
           />
 
           {/* ── Previews de archivos ───────────────────── */}
@@ -317,6 +360,27 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
                   </div>
                 )}
               </div>
+
+              {/* ── Botón mejorar con IA ─────────────────── */}
+              <Tooltip label="Mejorar con IA">
+                <button
+                  type="button"
+                  onClick={mejorarConIA}
+                  disabled={loading || mejorandoIA || !text.trim()}
+                  aria-label="Mejorar con IA"
+                  className={
+                    mejorandoIA
+                      ? 'p-2 rounded-full bg-purple-50 text-purple-600 cursor-wait'
+                      : 'p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-purple-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                  }
+                >
+                  {mejorandoIA ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
 
             {/* Input file oculto */}
