@@ -26,14 +26,14 @@ const isPptFile = (tipo, filename) =>
 function DocCard({ file, label, color, Icon }) {
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-center text-center p-3 gap-2"
+      className="w-full h-full flex flex-col items-center justify-center text-center p-2 sm:p-3 gap-1.5 sm:gap-2"
       style={{ backgroundColor: `${color}10` }}
     >
       <div
-        className="w-12 h-12 rounded-lg flex items-center justify-center"
+        className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center"
         style={{ backgroundColor: color }}
       >
-        <Icon className="w-6 h-6 text-white" strokeWidth={2} />
+        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2} />
       </div>
 
       <span

@@ -9,10 +9,29 @@ const PPT_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 ]
 
-const getExt = (url = '') => {
+const EXT_POR_TIPO = {
+  'application/pdf': 'pdf',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
+}
+
+const getExt = (url = '', tipo = '') => {
   const limpio = url.split('?')[0].split('#')[0]
   const punto = limpio.lastIndexOf('.')
-  return punto >= 0 ? limpio.slice(punto + 1).toLowerCase() : ''
+  if (punto >= 0) return limpio.slice(punto + 1).toLowerCase()
+  return EXT_POR_TIPO[tipo] || ''
+}
+
+/* Fuerza la descarga con nombre legible desde Cloudinary.
+   fl_attachment toma SOLO el nombre base; Cloudinary añade la extensión
+   según el formato del recurso. Por eso quitamos cualquier ".ext" del nombre. */
+const urlDescarga = (url, nombre) => {
+  if (!url || !url.includes('cloudinary.com')) return url
+
+  const base = (nombre || '').trim().replace(/\.[^.]+$/, '') || 'documento'
+  const seguro = base.replace(/[^\w-]/g, '_')
+
+  return url.replace('/upload/', `/upload/fl_attachment:${seguro}/`)
 }
 
 /* ─── Video con autoplay al entrar al viewport ─────────────── */
@@ -48,12 +67,13 @@ function VideoMedia({ url }) {
 }
 
 /* ─── Fallback: tarjeta horizontal clickable ───────────────── */
-function DocFallback({ url, titulo, color, Icon }) {
+function DocFallback({ url, titulo, color, Icon, subtitulo = 'Haz clic para descargar' }) {
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
+      download
       className="flex items-center gap-3 px-4 py-3 border-t border-b border-gray-200 hover:bg-gray-50 transition-colors group"
     >
       <div
@@ -65,7 +85,7 @@ function DocFallback({ url, titulo, color, Icon }) {
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900 truncate">{titulo}</p>
-        <p className="text-xs text-gray-500 mt-0.5">Haz clic para abrir</p>
+        <p className="text-xs text-gray-500 mt-0.5">{subtitulo}</p>
       </div>
 
       <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-[#0A66C2] shrink-0" />
@@ -74,15 +94,15 @@ function DocFallback({ url, titulo, color, Icon }) {
 }
 
 /* ─── PDF: slider de páginas o tarjeta fallback ────────────── */
-function PdfMedia({ url, paginas }) {
+function PdfMedia({ url, paginas, nombre }) {
   if (paginas > 0) {
     return <MediaSlider url={url} paginas={paginas} titulo="Documento PDF" />
   }
 
   return (
     <DocFallback
-      url={url}
-      titulo="Documento PDF"
+      url={urlDescarga(url, nombre)}
+      titulo={nombre || 'Documento PDF'}
       color="#D93025"
       Icon={FileText}
     />
@@ -90,14 +110,15 @@ function PdfMedia({ url, paginas }) {
 }
 
 /* ─── PowerPoint: solo tarjeta clickable (sin vista previa) ── */
-function PptMedia({ url }) {
-  const ext = getExt(url)
+function PptMedia({ url, nombre, tipo }) {
+  const ext = getExt(url, tipo)
   const label = ext === 'pptx' ? 'PPTX' : 'PPT'
 
   return (
     <DocFallback
-      url={url}
-      titulo={`Presentación ${label}`}
+      url={urlDescarga(url, nombre)}
+      titulo={nombre || `Presentación ${label}`}
+      subtitulo="Haz clic para descargar"
       color="#E8710A"
       Icon={Presentation}
     />
@@ -106,12 +127,12 @@ function PptMedia({ url }) {
 
 /* ─── Item individual no-imagen: video, pdf o ppt ──────────── */
 function OtroMedia({ archivo }) {
-  const { url, tipo = '', paginas = 0 } = archivo
+  const { url, tipo = '', paginas = 0, nombre = '' } = archivo
   if (!url) return null
 
   if (tipo.startsWith('video/')) return <VideoMedia url={url} />
-  if (tipo === 'application/pdf') return <PdfMedia url={url} paginas={paginas} />
-  if (PPT_MIME_TYPES.includes(tipo)) return <PptMedia url={url} />
+  if (tipo === 'application/pdf') return <PdfMedia url={url} paginas={paginas} nombre={nombre} />
+  if (PPT_MIME_TYPES.includes(tipo)) return <PptMedia url={url} nombre={nombre} tipo={tipo} />
 
   return null
 }

@@ -286,7 +286,7 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
 
           {/* ── Previews de archivos ───────────────────── */}
           {files.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {files.map((f, idx) => (
                 <FilePreview
                   key={idx}

@@ -28,6 +28,25 @@ const isMimeAllowed = (mimetype = '') =>
         return mimetype === rule
     })
 
+const EXT_POR_MIME = {
+    'application/pdf': 'pdf',
+    'application/vnd.ms-powerpoint': 'ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
+}
+
+const obtenerExtensionArchivo = (file) => {
+    const nombre = file.originalname || ''
+    const punto = nombre.lastIndexOf('.')
+    if (punto >= 0) {
+        const ext = nombre.slice(punto + 1).toLowerCase()
+        if (ext) return ext
+    }
+    return EXT_POR_MIME[file.mimetype] || ''
+}
+
+const esArchivoRaw = (mimetype = '') =>
+    !mimetype.startsWith('image/') && !mimetype.startsWith('video/')
+
 // ──────────────────────────────────────────────
 // MULTER (archivos en memoria, no en disco)
 // ──────────────────────────────────────────────
@@ -82,6 +101,7 @@ const PublicacionSchema = new mongoose.Schema({
         {
             url: String,
             tipo: String,
+            nombre: String,
             paginas: { type: Number, default: 0 }
         }
     ],
@@ -146,18 +166,24 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
 
         const subidas = await Promise.all(
 
-            req.files.map((file) => subirBufferACloudinary(file.buffer, {
-                folder,
-                public_id: uuidv4(),
-                resource_type: 'auto',
-                timeout: 120000
-            }))
+            req.files.map((file) => {
+                const ext = obtenerExtensionArchivo(file)
+                const publicId = ext ? `${uuidv4()}.${ext}` : uuidv4()
+
+                return subirBufferACloudinary(file.buffer, {
+                    folder,
+                    public_id: publicId,
+                    resource_type: esArchivoRaw(file.mimetype) ? 'raw' : 'auto',
+                    timeout: 120000
+                })
+            })
 
         )
 
         const archivos = subidas.map((r, i) => ({
             url: r.secure_url,
             tipo: req.files[i].mimetype,
+            nombre: req.files[i].originalname || '',
             paginas: r.pages || 0
         }))
 
