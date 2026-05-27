@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Globe, ThumbsUp, MessageSquare, Repeat2, Send, X, ChevronDown } from 'lucide-react'
+import { Globe, ThumbsUp, MessageSquare, Repeat2, Send, X, } from 'lucide-react'
 
 /* ─── Datos de acción ─────────────────────────────────────── */
 const ACTIONS = [
@@ -107,12 +107,9 @@ export default function PostCard({
 
         {/* Botón cerrar + puntos */}
         <div className="flex items-center gap-1 shrink-0">
-          <button className="p-1 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
-            <ChevronDown className="w-5 h-5" />
-          </button>
           <button
             onClick={handleClose}
-            className="p-1 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-1 rounded-full hover:bg-gray-100 text-gray-500 transition-colors hover:cursor-pointer"
             aria-label="Cerrar"
           >
             <X className="w-5 h-5" />

@@ -9,8 +9,7 @@ import {
   Grid3X3,
   ChevronDown,
 } from 'lucide-react'
-
-import logoLinkedin from "../assets/linkedin.svg"
+import logoLinkedin from "../assets/img/linkedin.png"
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Inicio' },
@@ -25,12 +24,12 @@ export default function Header() {
   const [searchValue, setSearchValue] = useState('')
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white sticky top-0 z-50 shadow-sm">
       <div className="max-w-[1128px] mx-auto px-4 flex items-center gap-2 h-14">
 
         {/* ── Logo LinkedIn ── */}
         <a href="/" aria-label="LinkedIn" className="shrink-0 mr-1">
-          <img src={logoLinkedin} alt="Linkedin Devs" />
+          <img src={logoLinkedin} alt="Linkedin Devs" style={{ width: '32px', height: '32px' }} />
         </a>
 
         {/* ── Buscador ── */}
