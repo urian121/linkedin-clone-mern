@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Globe, ThumbsUp, MessageSquare, Repeat2, Send, X, } from 'lucide-react'
 import PostMedia from './PostMedia'
+import YoutubeEmbed from './YoutubeEmbed'
+import { extraerIdYoutube } from '../utils/youtube'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -111,6 +113,8 @@ export default function PostCard({
     ? content.slice(0, MAX_CHARS) + '…'
     : content
 
+  const youtubeId = extraerIdYoutube(content)
+
   return (
     <article className="bg-white rounded-lg border border-gray-200 overflow-hidden">
 
@@ -157,6 +161,9 @@ export default function PostCard({
           )}
         </div>
       )}
+
+      {/* ── Vista previa de YouTube (si hay link en el texto) ── */}
+      {youtubeId && <YoutubeEmbed id={youtubeId} />}
 
       {/* ── Archivos adjuntos (imagen, video, PDF, etc.) ──── */}
       <PostMedia archivos={archivos} />

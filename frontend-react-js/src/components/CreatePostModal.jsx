@@ -5,6 +5,8 @@ import Picker from '@emoji-mart/react'
 import emojiData from '@emoji-mart/data'
 import FilePreview from './FilePreview'
 import Tooltip from './Tooltip'
+import YoutubeEmbed from './YoutubeEmbed'
+import { extraerIdYoutube } from '../utils/youtube'
 
 const API_URL = import.meta.env.VITE_API_URL
 const ACCEPTED_TYPES = import.meta.env.VITE_ACCEPTED_FILE_TYPES
@@ -273,16 +275,31 @@ export default function CreatePostModal({ isOpen, onClose, onPosted }) {
           }
           aria-busy={loading}
         >
-          <textarea
-            ref={textareaRef}
-            autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={loading}
-            placeholder="¿Sobre qué quieres hablar?"
-            rows={files.length > 0 ? 4 : 10}
-            className="w-full resize-none text-gray-800 text-lg placeholder-gray-400 outline-none leading-relaxed"
-          />
+          {(() => {
+            const youtubeId = extraerIdYoutube(text)
+            const tienePreview = !!youtubeId || files.length > 0
+
+            return (
+              <>
+                <textarea
+                  ref={textareaRef}
+                  autoFocus
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  disabled={loading}
+                  placeholder="¿Sobre qué quieres hablar?"
+                  rows={tienePreview ? 3 : 10}
+                  className="w-full resize-none text-gray-800 text-lg placeholder-gray-400 outline-none leading-relaxed"
+                />
+
+                {youtubeId && (
+                  <div className="mt-3 max-w-md mx-auto rounded-lg overflow-hidden border border-gray-200 bg-black">
+                    <YoutubeEmbed id={youtubeId} bordered={false} />
+                  </div>
+                )}
+              </>
+            )
+          })()}
 
           {/* ── Previews de archivos ───────────────────── */}
           {files.length > 0 && (
