@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { showToast } from 'nextjs-toast-notify'
+import useAuth from './useAuth'
 
 const API_URL = import.meta.env.VITE_API_URL
 const DEFAULT_USER_ID = import.meta.env.VITE_DEFAULT_USER_ID
@@ -10,6 +11,7 @@ const toastBase = { position: 'bottom-right', transition: 'swingInverted' }
 /* Encapsula todo el estado y la lógica del formulario de crear publicación:
    texto, archivos, mejora con IA, subida a Cloudinary y publicación. */
 export default function usePostForm({ onPublished } = {}) {
+  const { user } = useAuth()
   const [text, setText] = useState('')
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(false)
@@ -153,7 +155,7 @@ export default function usePostForm({ onPublished } = {}) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          idusuario: DEFAULT_USER_ID,
+          idusuario: user?.displayName || user?.email || DEFAULT_USER_ID,
           texto: text.trim(),
           archivos: archivosSubidos
         })

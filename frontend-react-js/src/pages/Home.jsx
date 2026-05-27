@@ -10,7 +10,9 @@ import PostCard from '../components/PostCard'
 import CreatePostModal from '../components/CreatePostModal'
 import HomeSkeleton from '../components/Skeleton/HomeSkeleton'
 import LoadingMore from '../components/LoadingMore'
+import UserAvatar from '../components/UserAvatar'
 import usePosts from '../hooks/usePosts'
+import useAuth from '../hooks/useAuth'
 
 dayjs.extend(relativeTime)
 dayjs.locale('es')
@@ -30,6 +32,7 @@ const colorFromString = (str = '') => {
 
 export default function Home() {
   const [modalOpen, setModalOpen] = useState(false)
+  const { user } = useAuth()
   const {
     posts,
     loading,
@@ -41,6 +44,9 @@ export default function Home() {
     agregarPost
   } = usePosts()
 
+  const miAvatar = user?.photoURL || null
+  const miNombre = user?.displayName || user?.email || 'Tú'
+
   if (loading) return <HomeSkeleton count={3} />
 
   return (
@@ -51,13 +57,7 @@ export default function Home() {
           <section className="flex flex-col gap-3">
             {/* Caja "Crear post" */}
             <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                <img
-                  src="https://i.pravatar.cc/48?img=12"
-                  alt="Tú"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <UserAvatar src={miAvatar} name={miNombre} size="md" />
               <button
                 onClick={() => setModalOpen(true)}
                 className="flex-1 text-left text-sm text-gray-600 border border-gray-400 rounded-full px-4 py-2 hover:bg-gray-100 transition-colors cursor-pointer"
@@ -116,7 +116,7 @@ export default function Home() {
                     content={post.texto || ''}
                     archivos={post.archivos || []}
                     initialRecomendaciones={post.recomendaciones || 0}
-                    currentUserAvatar="https://i.pravatar.cc/48?img=12"
+                    currentUserAvatar={miAvatar}
                   />
                 ))}
               </InfiniteScroll>

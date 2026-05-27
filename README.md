@@ -1,8 +1,8 @@
 # MERN Stack LinkedIn
 
 Un clon estilo LinkedIn construido con el **stack MERN** (MongoDB, Express, React y Node.js) para aprender y mostrar de punta a punta cómo se conecta un frontend moderno con una API REST real.
-Permite crear publicaciones con texto, imágenes, videos, PDFs y PowerPoints, mejorar el texto con **IA (Google Gemini)**, ver previews automáticos de YouTube, autoplay de videos al hacer scroll y un feed paginado con scroll infinito.
-Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 5 y MongoDB Atlas en un mismo proyecto.
+Incluye **autenticación con Google vía Firebase**, creación de publicaciones con texto, imágenes, videos, PDFs y PowerPoints, mejora de texto con **IA (Google Gemini)**, previews automáticos de YouTube, autoplay de videos al hacer scroll y un feed paginado con scroll infinito.
+Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 5, MongoDB Atlas y Firebase en un mismo proyecto.
 
 ---
 
@@ -21,6 +21,8 @@ Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 
 
 ## Funcionalidades
 
+- **Autenticación con Google** vía Firebase: login con un solo click, sesión persistente entre recargas y rutas protegidas.
+- **Menú de usuario** en el header con foto de perfil real (de la cuenta de Google) y opción de cerrar sesión.
 - **Feed paginado con scroll infinito**: las publicaciones se cargan de 3 en 3 a medida que el usuario hace scroll.
 - **Crear publicaciones** con texto, emojis (`emoji-mart`), múltiples imágenes (hasta 6), videos, PDFs y PowerPoints.
 - **Mejorar texto con IA** usando Google Gemini desde un botón en el modal de publicación.
@@ -42,6 +44,7 @@ Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 
 - Vite
 - Tailwind CSS 4
 - React Router DOM
+- Firebase Authentication (Google Sign-in)
 - lucide-react (íconos)
 - dayjs (fechas relativas en español)
 - emoji-mart (selector de emojis)
@@ -72,12 +75,15 @@ mern_stack_linkedin/
 │
 └── frontend-react-js/            # SPA con React + Vite
     ├── src/
-    │   ├── components/           # Header, PostCard, CreatePostModal, ImageGrid, MediaSlider, etc.
-    │   ├── hooks/                # usePosts, useInView
-    │   ├── pages/Home.jsx        # Feed principal
+    │   ├── components/           # Header, PostCard, CreatePostModal, ImageGrid, MediaSlider, ProtectedRoute, UserMenu, etc.
+    │   ├── conn/firebase.js      # Inicialización de Firebase Auth + provider Google
+    │   ├── contexts/             # authContext + AuthProvider (estado global de sesión)
+    │   ├── hooks/                # usePosts, useInView, useAuth, usePostForm, useCloseAnimation
+    │   ├── pages/Home.jsx        # Feed principal (ruta protegida)
+    │   ├── pages/auth/Login.jsx  # Página de login con Google
     │   ├── pages/placeholders/   # Mi red, Empleos, Mensajería, Notificaciones
     │   ├── utils/youtube.js      # Helper para detectar URLs de YouTube
-    │   ├── App.jsx               # Definición de rutas
+    │   ├── App.jsx               # Definición de rutas + AuthProvider
     │   └── main.jsx              # Punto de entrada (BrowserRouter)
     └── .env.example              # Plantilla de variables de entorno
 ```
@@ -90,6 +96,7 @@ mern_stack_linkedin/
 - Una cuenta gratuita de [MongoDB Atlas](https://www.mongodb.com/atlas) con un cluster creado
 - Una cuenta gratuita de [Cloudinary](https://cloudinary.com/users/register/free) (para guardar imágenes y archivos subidos)
 - Una API key gratuita de [Google AI Studio](https://aistudio.google.com/apikey) (para la funcionalidad "Mejorar con IA")
+- Un proyecto en [Firebase Console](https://console.firebase.google.com/) con **Authentication → Google** habilitado (para el login)
 
 ---
 
@@ -152,7 +159,7 @@ cd frontend-react-js
 npm install --legacy-peer-deps
 ```
 
-> Se usa `--legacy-peer-deps` porque algunas librerías (`@emoji-mart/react`, `react-lite-youtube-embed`) aún no declaran React 19 como peer dependency, aunque funcionan perfecto en runtime.
+> Se usa `--legacy-peer-deps` porque algunas librerías (`@emoji-mart/react`, `react-lite-youtube-embed`, `firebase`) aún no declaran React 19 como peer dependency, aunque funcionan perfecto en runtime.
 
 2. Crea tu archivo `.env` a partir del ejemplo:
 
@@ -168,7 +175,17 @@ VITE_ACCEPTED_FILE_TYPES=image/*,video/*,application/pdf,.ppt,.pptx
 VITE_DEFAULT_USER_ID=demo-user
 VITE_MAX_IMAGES=6
 VITE_POSTS_POR_PAGINA=3
+
+# Firebase (autenticación con Google)
+VITE_FIREBASE_API_KEY=tu_api_key
+VITE_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=tu_proyecto
+VITE_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000
+VITE_FIREBASE_APP_ID=1:000000000000:web:0000000000000000000000
 ```
+
+> Los valores de Firebase se obtienen en **Firebase Console → Configuración del proyecto → Tus apps → Configuración del SDK**. Asegúrate también de activar **Authentication → Sign-in method → Google** y agregar `localhost` a los dominios autorizados.
 
 4. Inicia el servidor de desarrollo:
 

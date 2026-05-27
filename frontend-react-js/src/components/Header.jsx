@@ -8,9 +8,9 @@ import {
   MessageSquare,
   Bell,
   Grid3X3,
-  ChevronDown,
 } from 'lucide-react'
 import logoLinkedin from "../assets/img/linkedin.png"
+import UserMenu from './UserMenu'
 
 const NAV_ITEMS = [
   { to: '/',               icon: Home,          label: 'Inicio' },
@@ -79,18 +79,7 @@ export default function Header() {
           <div className="hidden lg:block w-px h-8 bg-gray-300 mx-1" />
 
           {/* ── Avatar / Perfil ── */}
-          <button className="flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors group hover:cursor-pointer">
-            <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-300 ring-1 ring-gray-300 group-hover:ring-black transition-all">
-              <img
-                src="https://i.pravatar.cc/48?img=12"
-                alt="Perfil"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className="hidden md:flex items-center gap-0.5">
-              Yo <ChevronDown className="w-3 h-3" />
-            </span>
-          </button>
+          <UserMenu />
 
           {/* ── Cuadrícula apps ── */}
           <button className="flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors hover:cursor-pointer">
