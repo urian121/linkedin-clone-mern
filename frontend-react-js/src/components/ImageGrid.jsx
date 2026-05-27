@@ -5,7 +5,7 @@
    4     → 1 grande izq (3fr) + 3 apiladas (1fr), contenedor cuadrado
    5-6   → igual que 4, con overlay "+N" sobre la última visible */
 
-const VISIBLES_MAX = 4
+const VISIBLES_MAX = Number(import.meta.env.VITE_IMAGENES_MOSAICO_MAX) || 4
 
 function ImgCell({ url, overlayText, style }) {
   return (

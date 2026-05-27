@@ -156,6 +156,7 @@ export default function usePostForm({ onPublished } = {}) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           idusuario: user?.displayName || user?.email || DEFAULT_USER_ID,
+          autorFoto: user?.photoURL || '',
           texto: text.trim(),
           archivos: archivosSubidos
         })

@@ -44,8 +44,18 @@ const obtenerExtensionArchivo = (file) => {
     return EXT_POR_MIME[file.mimetype] || ''
 }
 
-const esArchivoRaw = (mimetype = '') =>
-    !mimetype.startsWith('image/') && !mimetype.startsWith('video/')
+/*
+ * Cloudinary maneja distinto cada tipo de archivo:
+ *  - 'image'  → procesa PDFs y devuelve `pages` + permite la transformación pg_N
+ *               (necesario para el slider de páginas en el feed)
+ *  - 'video'  → cubierto por 'auto' para mp4/webm/etc.
+ *  - 'raw'    → no procesa el archivo, lo entrega tal cual (PPT/PPTX y otros)
+ */
+const resourceTypeParaArchivo = (mimetype = '') => {
+    if (mimetype === 'application/pdf') return 'image'
+    if (mimetype.startsWith('image/') || mimetype.startsWith('video/')) return 'auto'
+    return 'raw'
+}
 
 // ──────────────────────────────────────────────
 // MULTER (archivos en memoria, no en disco)
@@ -95,6 +105,7 @@ const manejarMulter = (req, res, next) => {
 // ──────────────────────────────────────────────
 const PublicacionSchema = new mongoose.Schema({
     idusuario: String,
+    autorFoto: String,
     texto: String,
 
     archivos: [
@@ -173,7 +184,7 @@ router.post('/subirarchivos', manejarMulter, async (req, res) => {
                 return subirBufferACloudinary(file.buffer, {
                     folder,
                     public_id: publicId,
-                    resource_type: esArchivoRaw(file.mimetype) ? 'raw' : 'auto',
+                    resource_type: resourceTypeParaArchivo(file.mimetype),
                     timeout: 120000
                 })
             })
@@ -215,6 +226,7 @@ router.post('/agregarpublicacion', async (req, res) => {
 
         const nuevaPublicacion = new ModeloPublicacion({
             idusuario: req.body.idusuario,
+            autorFoto: req.body.autorFoto || '',
             texto: req.body.texto,
             archivos: req.body.archivos || []
         })

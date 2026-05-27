@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Globe, ThumbsUp, MessageSquare, Repeat2, Send, X, } from 'lucide-react'
 import PostMedia from './PostMedia'
 import YoutubeEmbed from './YoutubeEmbed'
+import UserAvatar from './UserAvatar'
 import { extraerIdYoutube } from '../utils/youtube'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -13,23 +14,6 @@ const ACTIONS = [
   { icon: Repeat2,        label: 'Compartir'  },
   { icon: Send,           label: 'Enviar'     },
 ]
-
-/* ─── Avatar circular con inicial (fallback sin imagen) ────── */
-function Avatar({ src, name, color = '#C0392B', size = 'md' }) {
-  const sizes = { sm: 'w-8 h-8 text-sm', md: 'w-12 h-12 text-lg' }
-  const cls = sizes[size] ?? sizes.md
-
-  return src ? (
-    <img src={src} alt={name} className={`${cls} rounded-full object-cover shrink-0`} />
-  ) : (
-    <div
-      className={`${cls} rounded-full flex items-center justify-center font-bold text-white shrink-0`}
-      style={{ backgroundColor: color }}
-    >
-      {name?.[0]?.toUpperCase()}
-    </div>
-  )
-}
 
 /* ─── Botón de reacción / acción ───────────────────────────── */
 function ActionButton({ icon: Icon, label, active, onClick }) {
@@ -56,7 +40,6 @@ function ActionButton({ icon: Icon, label, active, onClick }) {
 export default function PostCard({
   id                     = null,
   avatar                 = null,
-  avatarColor            = '#C0392B',
   name                   = 'Usuario',
   subtitle               = '500 seguidores',
   time                   = '1 h',
@@ -120,7 +103,7 @@ export default function PostCard({
 
       {/* ── Cabecera ──────────────────────────────────────── */}
       <div className="flex items-start gap-3 px-4 pt-4 pb-2">
-        <Avatar src={avatar} name={name} color={avatarColor} />
+        <UserAvatar src={avatar} name={name} size="lg" />
 
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-gray-900 leading-tight">{name}</p>
@@ -183,12 +166,7 @@ export default function PostCard({
       {/* ── Botones de acción ─────────────────────────────── */}
       <div className="flex items-center px-2 py-1">
         {/* Mini avatar del usuario actual */}
-        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0 mr-1">
-          {currentUserAvatar
-            ? <img src={currentUserAvatar} alt="Tú" className="w-full h-full object-cover" />
-            : <div className="w-full h-full bg-gray-300 flex items-center justify-center text-xs font-bold text-gray-600">T</div>
-          }
-        </div>
+        <UserAvatar src={currentUserAvatar} name="Tú" size="sm" className="mr-1" />
 
         {ACTIONS.map(({ icon, label }) => (
           <ActionButton

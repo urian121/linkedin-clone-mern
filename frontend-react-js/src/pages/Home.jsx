@@ -17,19 +17,6 @@ import useAuth from '../hooks/useAuth'
 dayjs.extend(relativeTime)
 dayjs.locale('es')
 
-const AVATAR_COLORS = [
-  '#C0392B', '#2980B9', '#27AE60', '#8E44AD',
-  '#E67E22', '#16A085', '#D35400', '#34495E'
-]
-
-const colorFromString = (str = '') => {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
-
 export default function Home() {
   const [modalOpen, setModalOpen] = useState(false)
   const { user } = useAuth()
@@ -109,7 +96,7 @@ export default function Home() {
                     key={post._id}
                     id={post._id}
                     name={post.idusuario || 'Usuario'}
-                    avatarColor={colorFromString(post.idusuario)}
+                    avatar={post.autorFoto || null}
                     subtitle="Miembro de LinkedIn Devs"
                     time={post.fecha ? dayjs(post.fecha).fromNow() : ''}
                     isPublic

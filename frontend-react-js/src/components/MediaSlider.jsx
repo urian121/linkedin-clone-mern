@@ -1,12 +1,6 @@
 import { useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-
-/* Reemplaza /upload/ por /upload/pg_N/ y cambia la extensión a .jpg
-   para que Cloudinary entregue cada página como imagen. */
-const cloudinaryPageUrl = (url, page) =>
-  url
-    .replace('/upload/', `/upload/pg_${page}/`)
-    .replace(/\.(pdf|ppt|pptx)$/i, '.jpg')
+import { urlPaginaPdf } from '../utils/cloudinary'
 
 export default function MediaSlider({ url, paginas, titulo }) {
   const scrollerRef = useRef(null)
@@ -41,7 +35,7 @@ export default function MediaSlider({ url, paginas, titulo }) {
             className="shrink-0 w-full h-full snap-center flex items-center justify-center"
           >
             <img
-              src={cloudinaryPageUrl(url, p)}
+              src={urlPaginaPdf(url, p)}
               alt={`Página ${p} de ${total}`}
               loading="lazy"
               draggable={false}

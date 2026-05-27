@@ -3,6 +3,7 @@ import { FileText, Presentation, ExternalLink } from 'lucide-react'
 import MediaSlider from './MediaSlider'
 import ImageGrid from './ImageGrid'
 import useInView from '../hooks/useInView'
+import { urlDescargaCloudinary } from '../utils/cloudinary'
 
 const PPT_MIME_TYPES = [
   'application/vnd.ms-powerpoint',
@@ -20,18 +21,6 @@ const getExt = (url = '', tipo = '') => {
   const punto = limpio.lastIndexOf('.')
   if (punto >= 0) return limpio.slice(punto + 1).toLowerCase()
   return EXT_POR_TIPO[tipo] || ''
-}
-
-/* Fuerza la descarga con nombre legible desde Cloudinary.
-   fl_attachment toma SOLO el nombre base; Cloudinary añade la extensión
-   según el formato del recurso. Por eso quitamos cualquier ".ext" del nombre. */
-const urlDescarga = (url, nombre) => {
-  if (!url || !url.includes('cloudinary.com')) return url
-
-  const base = (nombre || '').trim().replace(/\.[^.]+$/, '') || 'documento'
-  const seguro = base.replace(/[^\w-]/g, '_')
-
-  return url.replace('/upload/', `/upload/fl_attachment:${seguro}/`)
 }
 
 /* ─── Video con autoplay al entrar al viewport ─────────────── */
@@ -101,7 +90,7 @@ function PdfMedia({ url, paginas, nombre }) {
 
   return (
     <DocFallback
-      url={urlDescarga(url, nombre)}
+      url={urlDescargaCloudinary(url, nombre)}
       titulo={nombre || 'Documento PDF'}
       color="#D93025"
       Icon={FileText}
@@ -116,7 +105,7 @@ function PptMedia({ url, nombre, tipo }) {
 
   return (
     <DocFallback
-      url={urlDescarga(url, nombre)}
+      url={urlDescargaCloudinary(url, nombre)}
       titulo={nombre || `Presentación ${label}`}
       subtitulo="Haz clic para descargar"
       color="#E8710A"
