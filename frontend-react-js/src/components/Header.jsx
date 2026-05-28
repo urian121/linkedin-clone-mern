@@ -53,50 +53,52 @@ export default function Header() {
           <Search className="w-5 h-5" strokeWidth={2.5} />
         </button>
 
-        {/* ── Nav central: scroll horizontal en mobile, alineado a la derecha en desktop ── */}
-        <nav className="flex items-center gap-1 ml-auto overflow-x-auto scrollbar-hide">
-          {NAV_ITEMS.map(({ to, icon: Icon, label, badge }) => (
-            <NavLink
-              key={label}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `relative shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 sm:px-4 h-14 min-w-[52px] text-xs font-medium transition-colors hover:cursor-pointer
-                ${isActive
-                  ? 'text-black border-b-2 border-black'
-                  : 'text-gray-500 hover:text-black'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span className="relative">
-                    <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 1.8} />
-                    {badge ? (
-                      <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
-                        {badge}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="hidden md:block">{label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
+        {/* ── Nav: links con scroll; perfil/apps fuera para que el dropdown no se recorte ── */}
+        <nav className="flex items-center gap-1 ml-auto min-w-0">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide min-w-0">
+            {NAV_ITEMS.map(({ to, icon: Icon, label, badge }) => (
+              <NavLink
+                key={label}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `relative shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 sm:px-4 h-14 min-w-[52px] text-xs font-medium transition-colors hover:cursor-pointer
+                  ${isActive
+                    ? 'text-black border-b-2 border-black'
+                    : 'text-gray-500 hover:text-black'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="relative">
+                      <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 1.8} />
+                      {badge ? (
+                        <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full leading-none">
+                          {badge}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="hidden md:block">{label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
 
-          {/* Divisor vertical */}
-          <div className="hidden lg:block shrink-0 w-px h-8 bg-gray-300 mx-1" />
-
-          {/* ── Avatar / Perfil ── */}
-          <div className="shrink-0">
-            <UserMenu />
+            <div className="hidden lg:block shrink-0 w-px h-8 bg-gray-300 mx-1" />
           </div>
 
-          {/* ── Cuadrícula apps ── */}
-          <button className="shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors hover:cursor-pointer">
-            <Grid3X3 className="w-6 h-6" strokeWidth={1.8} />
-            <span className="hidden md:block">Para empresas</span>
-          </button>
+          <div className="flex items-center shrink-0">
+            <UserMenu />
+
+            <button
+              type="button"
+              className="flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors hover:cursor-pointer"
+            >
+              <Grid3X3 className="w-6 h-6" strokeWidth={1.8} />
+              <span className="hidden md:block">Para empresas</span>
+            </button>
+          </div>
         </nav>
       </div>
     </header>

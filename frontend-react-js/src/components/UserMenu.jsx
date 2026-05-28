@@ -35,7 +35,10 @@ export default function UserMenu() {
   return (
     <div ref={wrapperRef} className="relative">
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
         className="flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors group hover:cursor-pointer"
       >
         <UserAvatar
@@ -50,7 +53,10 @@ export default function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg border border-gray-200 overflow-hidden z-50">
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg border border-gray-200 overflow-hidden z-60"
+        >
           <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
             <UserAvatar src={avatar} name={nombre} size="lg" />
             <div className="min-w-0">
@@ -62,6 +68,8 @@ export default function UserMenu() {
           </div>
 
           <button
+            type="button"
+            role="menuitem"
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
           >
