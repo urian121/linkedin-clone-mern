@@ -32,7 +32,7 @@ export default function Header() {
           <img src={logoLinkedin} alt="Linkedin Devs" style={{ width: '32px', height: '32px' }} />
         </NavLink>
 
-        {/* ── Buscador ── */}
+        {/* ── Buscador (desktop) ── */}
         <div className="relative hidden sm:flex items-center bg-white border border-gray-300 rounded-full w-[280px] shrink-0 focus-within:border-gray-500 transition-colors">
           <Search className="absolute left-4 text-gray-700 w-4 h-4" strokeWidth={2.5} />
           <input
@@ -44,15 +44,24 @@ export default function Header() {
           />
         </div>
 
-        {/* ── Nav central ── */}
-        <nav className="flex items-center ml-auto gap-1">
+        {/* ── Buscador (mobile: solo ícono) ── */}
+        <button
+          type="button"
+          aria-label="Buscar"
+          className="sm:hidden shrink-0 w-10 h-10 flex items-center justify-center text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+        >
+          <Search className="w-5 h-5" strokeWidth={2.5} />
+        </button>
+
+        {/* ── Nav central: scroll horizontal en mobile, alineado a la derecha en desktop ── */}
+        <nav className="flex items-center gap-1 ml-auto overflow-x-auto scrollbar-hide">
           {NAV_ITEMS.map(({ to, icon: Icon, label, badge }) => (
             <NavLink
               key={label}
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-4 h-14 min-w-[52px] text-xs font-medium transition-colors hover:cursor-pointer
+                `relative shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 sm:px-4 h-14 min-w-[52px] text-xs font-medium transition-colors hover:cursor-pointer
                 ${isActive
                   ? 'text-black border-b-2 border-black'
                   : 'text-gray-500 hover:text-black'
@@ -76,13 +85,15 @@ export default function Header() {
           ))}
 
           {/* Divisor vertical */}
-          <div className="hidden lg:block w-px h-8 bg-gray-300 mx-1" />
+          <div className="hidden lg:block shrink-0 w-px h-8 bg-gray-300 mx-1" />
 
           {/* ── Avatar / Perfil ── */}
-          <UserMenu />
+          <div className="shrink-0">
+            <UserMenu />
+          </div>
 
           {/* ── Cuadrícula apps ── */}
-          <button className="flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors hover:cursor-pointer">
+          <button className="shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 h-14 min-w-[52px] text-xs text-gray-500 hover:text-black transition-colors hover:cursor-pointer">
             <Grid3X3 className="w-6 h-6" strokeWidth={1.8} />
             <span className="hidden md:block">Para empresas</span>
           </button>
