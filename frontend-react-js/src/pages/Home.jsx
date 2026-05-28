@@ -11,6 +11,7 @@ import CreatePostModal from '../components/CreatePostModal'
 import HomeSkeleton from '../components/Skeleton/HomeSkeleton'
 import LoadingMore from '../components/LoadingMore'
 import UserAvatar from '../components/UserAvatar'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import usePosts from '../hooks/usePosts'
 import useAuth from '../hooks/useAuth'
 
@@ -110,6 +111,8 @@ export default function Home() {
             )}
           </section>
         </div>
+
+        <ScrollToTopButton />
 
         <button
           onClick={() => setModalOpen(true)}
