@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Frontend para el proyecto MERN Stack LinkedIn",
+  "author": "Urian Viera",
+  "license": "ISC",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

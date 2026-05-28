@@ -4,6 +4,10 @@ Un clon estilo LinkedIn construido con el **stack MERN** (MongoDB, Express, Reac
 Incluye **autenticación con Google vía Firebase**, creación de publicaciones con texto, imágenes, videos, PDFs y PowerPoints, mejora de texto con **IA (Google Gemini)**, previews automáticos de YouTube, autoplay de videos al hacer scroll y un feed paginado con scroll infinito.
 Una excusa práctica y divertida para dominar React 19, Tailwind CSS 4, Express 5, MongoDB Atlas y Firebase en un mismo proyecto.
 
+Demo 😲
+
+https://github.com/user-attachments/assets/0de1b21d-e898-4c31-9169-b96d58c32a5b
+
 ---
 
 ## Tabla de contenido
